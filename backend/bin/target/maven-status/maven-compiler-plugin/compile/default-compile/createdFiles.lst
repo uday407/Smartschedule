@@ -1,0 +1,7 @@
+com\smartscheduler\Schedule.class
+com\smartscheduler\ScheduleRepository.class
+com\smartscheduler\MainController.class
+com\smartscheduler\TestController.class
+com\smartscheduler\UserRepository.class
+com\smartscheduler\BackendApplication.class
+com\smartscheduler\User.class

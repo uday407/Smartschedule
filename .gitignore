@@ -1,0 +1,18 @@
+# Node.js (Frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Java/Maven (Backend)
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.idea/
+backend/*.iml
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
