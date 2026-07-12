@@ -1,0 +1,33 @@
+databases:
+  - name: smartscheduler_db
+    databaseName: smartscheduler_db
+    user: db_user
+    plan: free
+
+services:
+  - type: web
+    name: backend
+    env: docker
+    rootDirectory: backend
+    plan: free
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: smartscheduler_db
+          property: jdbcConnectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: smartscheduler_db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: smartscheduler_db
+          property: password
+      - key: PORT
+        value: 8080
+
+  - type: web
+    name: frontend
+    env: docker
+    rootDirectory: frontend
+    plan: free
