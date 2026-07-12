@@ -8,7 +8,7 @@ services:
   - type: web
     name: backend
     env: docker
-    rootDirectory: backend
+    rootDir: backend
     plan: free
     envVars:
       - key: SPRING_DATASOURCE_URL
@@ -29,5 +29,5 @@ services:
   - type: web
     name: frontend
     env: docker
-    rootDirectory: frontend
+    rootDir: frontend
     plan: free
