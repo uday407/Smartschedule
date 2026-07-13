@@ -12,6 +12,23 @@ public class TestController {
         return "💖 Project is ALIVE at /api/heartbeat";
     }
 
+    @GetMapping(value = "/", produces = "text/html;charset=UTF-8")
+    public String index() {
+        return "<html>" +
+                "<body style=\"font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f8f9fa;\">" +
+                "  <div style=\"max-width: 600px; margin: auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);\">" +
+                "    <h1 style=\"color: #007bff;\">📅 SmartScheduler-Plus Backend</h1>" +
+                "    <p style=\"font-size: 18px; color: #333;\">This is the backend REST API server running on port 8080.</p>" +
+                "    <p style=\"font-size: 18px;\">To access the actual Web Application, please visit:</p>" +
+                "    <div style=\"margin: 20px 0;\">" +
+                "      <a href=\"http://localhost:5173\" style=\"display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; font-weight: bold; text-decoration: none; border-radius: 4px;\">Open Frontend Application</a>" +
+                "    </div>" +
+                "    <p style=\"font-size: 14px; color: #6c757d;\">Heartbeat endpoint: <a href=\"/api/heartbeat\" style=\"color: #007bff;\">/api/heartbeat</a></p>" +
+                "  </div>" +
+                "</body>" +
+                "</html>";
+    }
+
     @GetMapping(value = "/api/hashtable", produces = "text/plain;charset=UTF-8")
     public String getHashTable() {
         MyHashTable map = new MyHashTable();

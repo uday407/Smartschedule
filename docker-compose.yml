@@ -11,7 +11,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - smartscheduler_mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmysql"]
       interval: 5s
@@ -44,4 +44,4 @@ services:
       - backend
 
 volumes:
-  mysql_data:
+  smartscheduler_mysql_data:
