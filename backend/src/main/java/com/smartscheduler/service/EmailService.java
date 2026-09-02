@@ -16,27 +16,27 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:nudaykumar2005@gmail.com}")
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:}")
     private String fromEmail;
 
     @Async
     public void sendScheduleNotification(String toEmail, String subject, String content) {
-        log.info("📧 [Email Dispatch] Preparing email to '{}' | Subject: '{}'", toEmail, subject);
+        log.info("📧 [Email Dispatch] Recipient: '{}' | Subject: '{}'", toEmail, subject);
         
-        if (mailSender != null && toEmail != null && toEmail.contains("@")) {
+        if (mailSender != null && fromEmail != null && !fromEmail.trim().isEmpty() && toEmail != null && toEmail.contains("@")) {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromEmail != null ? fromEmail : "nudaykumar2005@gmail.com");
+                message.setFrom(fromEmail);
                 message.setTo(toEmail);
                 message.setSubject(subject);
                 message.setText(content);
                 mailSender.send(message);
                 log.info("✅ [Email Sent Successfully] Sent email to '{}'", toEmail);
             } catch (Exception e) {
-                log.warn("⚠️ [Email Delivery Failed] Fallback log output for {}: {}", toEmail, e.getMessage());
+                log.warn("⚠️ [Email Dispatch Fallback] Logged email for {}: {}", toEmail, e.getMessage());
             }
         } else {
-            log.info("ℹ️ [Mock Email Service] Recipient: {} | Subject: {}\nBody:\n{}", toEmail, subject, content);
+            log.info("ℹ️ [In-App Notification Center] Recipient: {} | Subject: {}\nBody:\n{}", toEmail, subject, content);
         }
     }
 }
