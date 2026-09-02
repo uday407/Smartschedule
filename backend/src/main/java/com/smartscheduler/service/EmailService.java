@@ -16,6 +16,9 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:nudaykumar2005@gmail.com}")
+    private String fromEmail;
+
     @Async
     public void sendScheduleNotification(String toEmail, String subject, String content) {
         log.info("📧 [Email Dispatch] Preparing email to '{}' | Subject: '{}'", toEmail, subject);
@@ -23,7 +26,7 @@ public class EmailService {
         if (mailSender != null && toEmail != null && toEmail.contains("@")) {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom("noreply@smartscheduler.com");
+                message.setFrom(fromEmail != null ? fromEmail : "nudaykumar2005@gmail.com");
                 message.setTo(toEmail);
                 message.setSubject(subject);
                 message.setText(content);
