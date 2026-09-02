@@ -20,8 +20,9 @@ public class TestController {
                 "    <h1 style=\"color: #007bff;\">📅 SmartScheduler-Plus Backend</h1>" +
                 "    <p style=\"font-size: 18px; color: #333;\">This is the backend REST API server running on port 8080.</p>" +
                 "    <p style=\"font-size: 18px;\">To access the actual Web Application, please visit:</p>" +
-                "    <div style=\"margin: 20px 0;\">" +
-                "      <a href=\"http://localhost:5173\" style=\"display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; font-weight: bold; text-decoration: none; border-radius: 4px;\">Open Frontend Application</a>" +
+                "    <div style=\"margin: 20px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;\">" +
+                "      <a href=\"https://app-frontend-94b1.onrender.com\" style=\"display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; font-weight: bold; text-decoration: none; border-radius: 4px;\">Open Frontend Application</a>" +
+                "      <a href=\"/swagger-ui/index.html\" style=\"display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; font-weight: bold; text-decoration: none; border-radius: 4px;\">Open Swagger OpenAPI Docs</a>" +
                 "    </div>" +
                 "    <p style=\"font-size: 14px; color: #6c757d;\">Heartbeat endpoint: <a href=\"/api/heartbeat\" style=\"color: #007bff;\">/api/heartbeat</a></p>" +
                 "  </div>" +
