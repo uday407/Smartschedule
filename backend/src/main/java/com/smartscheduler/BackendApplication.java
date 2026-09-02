@@ -23,7 +23,22 @@ public class BackendApplication {
                 admin.setFullName("Head of Department");
                 admin.setRole("HOD");
                 userRepository.save(admin);
-                System.out.println("✅ Auto Setup: Default admin user (admin / admin123) has been created!");
+
+                User prof1 = new User();
+                prof1.setUsername("uday");
+                prof1.setPassword("123");
+                prof1.setFullName("Dr. Uday Kumar");
+                prof1.setRole("PROFESSOR");
+                userRepository.save(prof1);
+
+                User prof2 = new User();
+                prof2.setUsername("sri");
+                prof2.setPassword("123");
+                prof2.setFullName("Prof. Srikanth");
+                prof2.setRole("PROFESSOR");
+                userRepository.save(prof2);
+
+                System.out.println("✅ Auto Setup: Seeded admin (admin/admin123) and professors (uday/123, sri/123)!");
             }
         };
     }
