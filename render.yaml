@@ -1,47 +1,31 @@
-databases:
-  - name: smartscheduler_db
-    databaseName: smartscheduler_db
-    user: db_user
-    plan: free
-
 services:
+  # Spring Boot Backend Service
   - type: web
-    name: backend
-    env: docker
-    rootDir: backend
-    plan: free
+    name: smartscheduler-backend
+    env: java
+    buildCommand: cd backend && mvn clean package -DskipTests
+    startCommand: java -jar backend/target/backend-0.0.1-SNAPSHOT.jar
     envVars:
-      - key: SPRING_DATASOURCE_URL
-        value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-      - key: DB_HOST
-        fromDatabase:
-          name: smartscheduler_db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: smartscheduler_db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: smartscheduler_db
-          property: database
-      - key: SPRING_DATASOURCE_USERNAME
-        fromDatabase:
-          name: smartscheduler_db
-          property: user
-      - key: SPRING_DATASOURCE_PASSWORD
-        fromDatabase:
-          name: smartscheduler_db
-          property: password
+      - key: JAVA_OPTS
+        value: "-Xmx384m -Xms256m"
       - key: PORT
-        value: 8080
+        value: "8080"
+      - key: SPRING_DATASOURCE_URL
+        value: "jdbc:h2:mem:smartscheduler_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
 
+  # React Vite Frontend Static Site
   - type: web
-    name: app-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm run build
-    staticPublishPath: dist
+    name: smartscheduler-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: ${backend.url}
+        fromService:
+          type: web
+          name: smartscheduler-backend
+          property: url
