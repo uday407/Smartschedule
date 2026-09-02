@@ -1,27 +1,45 @@
-package com.smartscheduler;
+package com.smartscheduler.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_user_username", columnList = "username"),
+    @Index(name = "idx_user_role", columnList = "role")
+})
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(unique = true, nullable = false)
     private String username;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
     private String fullName;
-    private String role;
+
+    @Column(nullable = false)
+    private String role; // "HOD", "PROFESSOR", "STUDENT"
+
     private String department;
     private String mobile;
     private String imageUrl;
 
-    // Getters and Setters
+    public User() {}
+
+    public User(String username, String password, String fullName, String role, String department, String mobile) {
+        this.username = username;
+        this.password = password;
+        this.fullName = fullName;
+        this.role = role;
+        this.department = department;
+        this.mobile = mobile;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

@@ -5,11 +5,13 @@ frontend/.env
 
 # Java/Maven (Backend)
 backend/target/
+backend/logs/
 backend/.classpath
 backend/.project
 backend/.settings/
 backend/.idea/
 backend/*.iml
+test_api.ps1
 
 # OS and IDE files
 .DS_Store

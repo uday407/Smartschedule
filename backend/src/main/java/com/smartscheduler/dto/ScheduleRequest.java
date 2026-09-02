@@ -1,27 +1,26 @@
-package com.smartscheduler;
+package com.smartscheduler.dto;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 
-@Entity
-@Table(name = "schedules")
-public class Schedule {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+public class ScheduleRequest {
+    @NotBlank(message = "Professor name is required")
     private String professorName;
+
+    @NotBlank(message = "Subject is required")
     private String subject;
+
+    @NotBlank(message = "Day is required")
     private String day;
+
+    @NotBlank(message = "Time is required")
     private String time;
+
+    @NotBlank(message = "Group/Section name is required")
     private String groupName;
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    private String roomNumber = "Room 101";
+
+    public ScheduleRequest() {}
 
     public String getProfessorName() { return professorName; }
     public void setProfessorName(String professorName) { this.professorName = professorName; }
@@ -37,4 +36,7 @@ public class Schedule {
 
     public String getGroupName() { return groupName; }
     public void setGroupName(String groupName) { this.groupName = groupName; }
+
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 }

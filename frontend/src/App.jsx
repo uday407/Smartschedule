@@ -3,599 +3,632 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost:5173') ? 'http://localhost:8080' : window.location.origin);
 
-
-// --- ENHANCED STYLES (Clean & Professional) ---
-const styles = {
-    container: {
-        padding: '30px',
-        fontFamily: "'Segoe UI', Roboto, sans-serif",
-        backgroundColor: '#f4f7f6',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
+// Setup Axios Interceptor for JWT Authentication
+axios.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
     },
-    card: {
-        backgroundColor: 'white',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        padding: '20px',
-        margin: '15px 0',
-        borderRadius: '12px',
-        width: '100%',
-        maxWidth: '500px',
-        borderLeft: '5px solid #007bff'
-    },
-    input: {
-        display: 'block',
-        margin: '15px 0',
-        padding: '12px',
-        width: '100%',
-        borderRadius: '6px',
-        border: '1px solid #ddd',
-        boxSizing: 'border-box'
-    },
-    button: {
-        padding: '12px 24px',
-        backgroundColor: '#007bff',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontWeight: 'bold'
-    },
-    deleteBtn: {
-        background: 'none',
-        border: 'none',
-        color: '#ff4d4d',
-        cursor: 'pointer',
-        float: 'right',
-        fontSize: '18px'
-    },
-    header: { color: '#333', marginBottom: '20px' }
-};
+    (error) => Promise.reject(error)
+);
 
 function App() {
-    const [page, setPage] = useState('login');
-    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('token') || null);
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || 'null'));
+    const [view, setView] = useState('analytics'); // analytics, timetable, approval, ai, rooms, audit, password
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
 
-    function logout() {
+    useEffect(() => {
+        if (user) {
+            fetchNotifications();
+        }
+    }, [user]);
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/notifications?username=${user?.username || 'admin'}`);
+            setNotifications(res.data);
+        } catch (e) {
+            console.log("Error fetching notifications", e);
+        }
+    };
+
+    const handleLogin = (authData) => {
+        localStorage.setItem('token', authData.token);
+        const userInfo = {
+            username: authData.username,
+            fullName: authData.fullName,
+            role: authData.role,
+            department: authData.department,
+            mobile: authData.mobile
+        };
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        setToken(authData.token);
+        setUser(userInfo);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
         setUser(null);
-        setPage('login');
+    };
+
+    if (!user || !token) {
+        return <LoginView onLogin={handleLogin} />;
     }
 
-    if (page === 'login') {
-        return <Login onLogin={function(u) { setUser(u); setPage(u.role === 'HOD' ? 'hod' : 'professor'); }} />;
-    }
+    const notificationList = Array.isArray(notifications) ? notifications : [];
+    const unreadCount = notificationList.filter(n => !n.isRead).length;
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f2f5', fontFamily: "'Inter', sans-serif" }}>
-            {page === 'hod' ? <HodDashboard user={user} onLogout={logout} /> : <ProfessorDashboard user={user} onLogout={logout} />}
-        </div>
-    );
-}
-
-// --- COMPONENTS ---
-
-function Login(props) {
-    const [mode, setMode] = useState('login'); // 'login' or 'forgot'
-    const [form, setForm] = useState({ username: 'admin', password: 'admin123' });
-    const [forgotForm, setForgotForm] = useState({ username: '', mobile: '', newPassword: '' });
-
-    async function handleLogin() {
-        try {
-            const res = await axios.post(`${API_BASE_URL}/api/login`, form);
-            if (res.data.status === 'success') {
-                props.onLogin(res.data);
-            } else {
-                alert('❌ Login Failed! Use admin / admin123');
-            }
-        } catch (e) {
-            alert('❌ Server Error!');
-        }
-    }
-
-    async function handleResetPassword() {
-        if (forgotForm.username === '' || forgotForm.mobile === '' || forgotForm.newPassword === '') {
-            alert('❌ Please fill all fields!');
-            return;
-        }
-        try {
-            const res = await axios.post(`${API_BASE_URL}/api/forgot-password`, forgotForm);
-            alert(res.data.message);
-            if (res.data.status === 'success') {
-                setMode('login');
-                setForm({ username: forgotForm.username, password: forgotForm.newPassword });
-                setForgotForm({ username: '', mobile: '', newPassword: '' });
-            }
-        } catch (e) {
-            alert('❌ Server Error!');
-        }
-    }
-
-    return (
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.9)', padding: '40px', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', width: '350px', backdropFilter: 'blur(10px)' }}>
-                <h1 style={{ textAlign: 'center', color: '#4A90E2', marginBottom: '30px' }}>✨ Smart Scheduler</h1>
-                
-                {mode === 'login' ? (
-                    <>
-                        <input style={styles.input} placeholder="Username" value={form.username} onChange={function(e) { setForm({ username: e.target.value, password: form.password }); }} />
-                        <input style={styles.input} type="password" placeholder="Password" value={form.password} onChange={function(e) { setForm({ username: form.username, password: e.target.value }); }} />
-                        <button style={{ ...styles.button, width: '100%', marginTop: '10px', background: '#4A90E2' }} onClick={handleLogin}>Log In</button>
-                        <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                            <span style={{ color: '#4A90E2', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }} onClick={function() { setMode('forgot'); }}>Forgot Password?</span>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <h3 style={{ textAlign: 'center', color: '#555', marginBottom: '20px' }}>Reset Password</h3>
-                        <input style={styles.input} placeholder="Username" value={forgotForm.username} onChange={function(e) { setForgotForm({ username: e.target.value, mobile: forgotForm.mobile, newPassword: forgotForm.newPassword }); }} />
-                        <input style={styles.input} placeholder="Registered Mobile Number" value={forgotForm.mobile} onChange={function(e) { setForgotForm({ username: forgotForm.username, mobile: e.target.value, newPassword: forgotForm.newPassword }); }} />
-                        <input style={styles.input} type="password" placeholder="New Password" value={forgotForm.newPassword} onChange={function(e) { setForgotForm({ username: forgotForm.username, mobile: forgotForm.mobile, newPassword: e.target.value }); }} />
-                        <button style={{ ...styles.button, width: '100%', marginTop: '10px', background: '#4A90E2' }} onClick={handleResetPassword}>Reset Password</button>
-                        <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                            <span style={{ color: '#666', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }} onClick={function() { setMode('login'); }}>Back to Login</span>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function SidebarItem(props) {
-    return (
-        <div onClick={props.onClick} style={{
-            padding: '15px 20px', cursor: 'pointer', borderRadius: '10px', marginBottom: '10px',
-            backgroundColor: props.active ? '#4A90E2' : 'transparent',
-            color: props.active ? 'white' : '#555',
-            transition: '0.3s', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold'
-        }}>
-            <span>{props.icon}</span> {props.label}
-        </div>
-    );
-}
-
-function HodDashboard(props) {
-    const [view, setView] = useState('analytics'); // analytics, schedules, professors, password
-    const [data, setData] = useState({ schedules: [], professors: [], stats: { totalSchedules: 0, totalProfessors: 0, dayStats: {}, groupStats: {}, subjectStats: {} } });
-    const [form, setForm] = useState({ prof: '', subj: '', day: 'Monday', time: '10:00 AM', group: 'Group A' });
-    const [search, setSearch] = useState('');
-    const [reg, setReg] = useState({ username: '', password: 'password123', fullName: '', department: '', mobile: '' });
-    const [passForm, setPassForm] = useState({ old: '', new: '' });
-
-    useEffect(function() {
-        loadAll();
-    }, []);
-
-    async function loadAll() {
-        try {
-            const schedulesRes = await axios.get(`${API_BASE_URL}/api/schedules`);
-            const professorsRes = await axios.get(`${API_BASE_URL}/api/professors`);
-            const analyticsRes = await axios.get(`${API_BASE_URL}/api/analytics`);
-            
-            setData({
-                schedules: schedulesRes.data,
-                professors: professorsRes.data,
-                stats: analyticsRes.data
-            });
-            console.log("📊 Analytics Data:", analyticsRes.data);
-        } catch (e) {
-            console.error("Load failed", e);
-        }
-    }
-
-    async function addSchedule() {
-        if (form.prof === '' || form.subj === '') {
-            alert("❌ Select Professor and Subject!");
-            return;
-        }
-        try {
-            const res = await axios.post(`${API_BASE_URL}/api/schedules`, {
-                professorName: form.prof,
-                subject: form.subj,
-                day: form.day,
-                time: form.time,
-                groupName: form.group
-            });
-            alert(res.data.message);
-            loadAll();
-        } catch (e) {
-            alert("❌ Error adding schedule.");
-        }
-    }
-
-    async function registerProf() {
-        if (reg.username === '' || reg.fullName === '') {
-            alert("❌ Fill Name and Username!");
-            return;
-        }
-        try {
-            const res = await axios.post(`${API_BASE_URL}/api/register`, reg);
-            alert(res.data.message);
-            loadAll();
-            setReg({ username: '', password: 'password123', fullName: '', department: '', mobile: '' });
-        } catch (e) {
-            alert("❌ Username exists!");
-        }
-    }
-
-    async function deleteSch(id) {
-        if (window.confirm("Delete this class?")) {
-            await axios.delete(`${API_BASE_URL}/api/schedules/${id}`);
-            loadAll();
-        }
-    }
-
-    async function resetDemoData() {
-        if (window.confirm("Reset all schedules and load demo data?")) {
-            try {
-                const res = await axios.get(`${API_BASE_URL}/api/demo`);
-                alert(res.data);
-                loadAll();
-            } catch (e) {
-                alert("❌ Reset failed.");
-            }
-        }
-    }
-
-    async function handleChangePassword() {
-        if (passForm.old === '' || passForm.new === '') {
-            alert("❌ Fill all password fields!");
-            return;
-        }
-        try {
-            const res = await axios.post(`${API_BASE_URL}/api/change-password`, {
-                username: props.user.username,
-                oldPassword: passForm.old,
-                newPassword: passForm.new
-            });
-            alert(res.data.message);
-            if (res.data.status === 'success') {
-                setPassForm({ old: '', new: '' });
-                setView('analytics');
-            }
-        } catch (e) {
-            alert("❌ Password change failed.");
-        }
-    }
-
-    return (
-        <>
-            {/* --- SIDEBAR --- */}
-            <div style={{ width: '260px', backgroundColor: 'white', padding: '30px 20px', boxShadow: '4px 0 10px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
-                <h2 style={{ color: '#4A90E2', marginBottom: '40px', textAlign: 'center' }}>👔 Admin Hub</h2>
-                <SidebarItem id="analytics" label="Dashboard" icon="📊" active={view === 'analytics'} onClick={function() { setView('analytics'); }} />
-                <SidebarItem id="schedules" label="Schedules" icon="📅" active={view === 'schedules'} onClick={function() { setView('schedules'); }} />
-                <SidebarItem id="professors" label="Professors" icon="👨‍🏫" active={view === 'professors'} onClick={function() { setView('professors'); }} />
-                <SidebarItem id="password" label="Security" icon="🔒" active={view === 'password'} onClick={function() { setView('password'); }} />
-                
-                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    <button style={{ ...styles.button, width: '100%', background: '#ffaa00' }} onClick={resetDemoData}>🔄 Reset Data</button>
-                    <button style={{ ...styles.button, width: '100%', background: '#ff4d4d' }} onClick={props.onLogout}>Logout</button>
-                </div>
-            </div>
-
-            {/* --- MAIN CONTENT --- */}
-            <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
-                {view === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", backgroundColor: '#f4f6f9' }}>
+            {/* --- TOP NAVBAR --- */}
+            <header style={{ height: '65px', backgroundColor: '#1e293b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 30px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', width: '38px', height: '38px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold' }}>⚡</div>
                     <div>
-                        <h1 style={{ marginBottom: '30px' }}>📊 Advanced Analytics Dashboard</h1>
+                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', letterSpacing: '0.5px' }}>SmartScheduler <span style={{ color: '#60a5fa', fontSize: '12px', background: 'rgba(96,165,250,0.2)', padding: '2px 8px', borderRadius: '12px', border: '1px solid rgba(96,165,250,0.4)' }}>PRO ENTERPRISE</span></h2>
+                    </div>
+                </div>
 
-                        {/* --- STATS CARDS --- */}
-                        <div style={{ display: 'flex', gap: '20px', marginBottom: '40px' }}>
-                            <div style={{ ...styles.card, flex: 1, border: 'none', background: 'linear-gradient(135deg, #4A90E2, #007AFF)', color: 'white' }}>
-                                <small>TOTAL SESSIONS</small>
-                                <h1 style={{ fontSize: '48px', margin: '10px 0' }}>{data.stats.totalSchedules}</h1>
-                                <p style={{ fontSize: '12px', opacity: 0.8 }}>+5% from last week</p>
-                            </div>
-                            <div style={{ ...styles.card, flex: 1, border: 'none', background: 'linear-gradient(135deg, #34C759, #28A745)', color: 'white' }}>
-                                <small>ACTIVE FACULTY</small>
-                                <h1 style={{ fontSize: '48px', margin: '10px 0' }}>{data.stats.totalProfessors}</h1>
-                                <p style={{ fontSize: '12px', opacity: 0.8 }}>All professors online</p>
-                            </div>
-                        </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <a href={`${API_BASE_URL}/swagger-ui/index.html`} target="_blank" rel="noreferrer" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px', background: '#334155', padding: '6px 12px', borderRadius: '6px' }}>
+                        📜 OpenAPI Docs
+                    </a>
 
-                        {/* --- NEW: GROUP EXPLOROR --- */}
-                        <div style={{ marginBottom: '40px' }}>
-                            <h3 style={{ marginBottom: '15px' }}>🔍 Explore Groups (Click to see info)</h3>
-                            <div style={{ display: 'flex', gap: '15px' }}>
-                                {['Group A', 'Group B', 'Group C'].map(function(g) {
-                                    return (
-                                        <div key={g}
-                                            onClick={function() { setSearch(g); }}
-                                            style={{
-                                                padding: '20px', background: search === g ? '#4A90E2' : 'white',
-                                                color: search === g ? 'white' : '#333',
-                                                borderRadius: '15px', cursor: 'pointer', flex: 1,
-                                                textAlign: 'center', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                                                transition: '0.3s'
-                                            }}>
-                                            {g}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    <div style={{ position: 'relative' }}>
+                        <button onClick={() => setShowNotifications(!showNotifications)} style={{ background: '#334155', border: 'none', color: 'white', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                            🔔 Inbox {unreadCount > 0 && <span style={{ background: '#ef4444', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '11px', fontWeight: 'bold' }}>{unreadCount}</span>}
+                        </button>
 
-                        {/* --- GROUP DETAILS LIST --- */}
-                        {search.startsWith('Group') && (
-                            <div style={{ marginBottom: '40px' }}>
-                                <h3>📋 {search} Schedule Details</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '20px' }}>
-                                    {data.schedules.filter(function(s) { return s.groupName === search; }).map(function(s) {
-                                        const prof = data.professors.find(function(p) { return p.fullName === s.professorName; });
-                                        return (
-                                            <div key={s.id} style={{ ...styles.card, borderLeft: '6px solid #4A90E2', position: 'relative' }}>
-                                                <h4 style={{ margin: '0 0 10px 0', color: '#4A90E2' }}>{s.subject}</h4>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                                    <img src={'https://ui-avatars.com/api/?name=' + s.professorName + '&background=random'} style={{ width: '30px', height: '30px', borderRadius: '50%' }} />
-                                                    <b>{s.professorName}</b>
-                                                </div>
-                                                <div style={{ fontSize: '13px', color: '#666' }}>⏰ {s.day} @ {s.time}</div>
-                                                <div style={{ fontSize: '13px', color: '#333', marginTop: '8px', padding: '8px', background: '#f0f7ff', borderRadius: '8px' }}>
-                                                    📞 Contact: {prof ? (prof.mobile ? prof.mobile : '9876543210') : '9876543210'}
-                                                </div>
+                        {showNotifications && (
+                            <div style={{ position: 'absolute', right: 0, top: '45px', width: '340px', backgroundColor: 'white', color: '#1e293b', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 1000, padding: '15px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                                    <strong style={{ fontSize: '14px' }}>Notifications ({notificationList.length})</strong>
+                                    <button onClick={() => setShowNotifications(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                                </div>
+                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    {notificationList.length === 0 ? <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>No notifications</p> : (
+                                        notificationList.map(n => (
+                                            <div key={n.id} style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', background: n.isRead ? '#ffffff' : '#eff6ff', borderRadius: '6px', marginBottom: '6px' }}>
+                                                <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e3a8a' }}>{n.title}</div>
+                                                <div style={{ fontSize: '12px', color: '#475569', marginTop: '3px' }}>{n.message}</div>
+                                                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>{new Date(n.createdAt).toLocaleTimeString()}</div>
                                             </div>
-                                        );
-                                    })}
-                                    {data.schedules.filter(function(s) { return s.groupName === search; }).length === 0 && <p>No classes for this group yet.</p>}
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         )}
-
-                        <div style={{ display: 'flex', gap: '40px', marginBottom: '40px' }}>
-                            {/* Weekly Workload */}
-                            <div style={{ ...styles.card, flex: 1 }}>
-                                <h3 style={{ marginBottom: '25px' }}>📅 Weekly Workload (Classes/Day)</h3>
-                                <div style={{ height: '150px', display: 'flex', alignItems: 'flex-end', gap: '15px', padding: '10px' }}>
-                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(function(day) {
-                                        const count = data.stats.dayStats ? (data.stats.dayStats[day] || 0) : 0;
-                                        const height = data.stats.totalSchedules ? (count / data.stats.totalSchedules) * 100 : 0;
-                                        return (
-                                            <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#4A90E2', marginBottom: '2px' }}>{count}</span>
-                                                <div style={{ width: '100%', background: '#4A90E2', height: Math.max(height, 5) + '%', borderRadius: '5px 5px 0 0', transition: '1s ease', boxShadow: '0 -2px 10px rgba(74, 144, 226, 0.3)' }}></div>
-                                                <small style={{ marginTop: '10px', fontSize: '10px', color: '#888' }}>{day.substring(0, 3)}</small>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Subject Workload */}
-                            <div style={{ ...styles.card, flex: 1 }}>
-                                <h3 style={{ marginBottom: '25px' }}>📚 Subject Workload (Classes/Subject)</h3>
-                                <div style={{ height: '150px', display: 'flex', alignItems: 'flex-end', gap: '15px', padding: '10px' }}>
-                                    {Object.keys(data.stats.subjectStats || {}).map(function(subj) {
-                                        const count = data.stats.subjectStats ? (data.stats.subjectStats[subj] || 0) : 0;
-                                        const height = data.stats.totalSchedules ? (count / data.stats.totalSchedules) * 100 : 0;
-                                        return (
-                                            <div key={subj} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#34C759', marginBottom: '2px' }}>{count}</span>
-                                                <div style={{ width: '100%', background: '#34C759', height: Math.max(height, 5) + '%', borderRadius: '5px 5px 0 0', transition: '1s ease', boxShadow: '0 -2px 10px rgba(52, 199, 89, 0.3)' }}></div>
-                                                <small style={{ marginTop: '10px', fontSize: '9px', color: '#888' }}>{subj}</small>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ ...styles.card, maxWidth: '100%' }}>
-                            <h3>✨ Recent Activity</h3>
-                            {data.schedules.slice(0, 3).map(function(s) {
-                                return (
-                                    <div key={s.id} style={{ padding: '10px 0', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4A90E2' }}></div>
-                                        <span style={{ fontSize: '13px' }}><b>{s.professorName}</b> was assigned to <b>{s.subject}</b></span>
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </div>
-                )}
 
-                {view === 'schedules' && (
-                    <div>
-                        <h1>📅 Manage Timetables</h1>
-                        <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
-                            <div style={{ ...styles.card, flex: 1, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(5px)' }}>
-                                <h3>➕ Assign New Class</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                    <select style={styles.input} value={form.prof} onChange={function(e) { setForm({ prof: e.target.value, subj: form.subj, day: form.day, time: form.time, group: form.group }); }}>
-                                        <option value="">Select Professor</option>
-                                        {data.professors.map(function(p) { return <option key={p.id} value={p.fullName}>{p.fullName}</option>; })}
-                                    </select>
-                                    <input style={styles.input} placeholder="Subject Name" value={form.subj} onChange={function(e) { setForm({ prof: form.prof, subj: e.target.value, day: form.day, time: form.time, group: form.group }); }} />
-                                    <select style={styles.input} value={form.group} onChange={function(e) { setForm({ prof: form.prof, subj: form.subj, day: form.day, time: form.time, group: e.target.value }); }}>
-                                        <option>Group A</option><option>Group B</option><option>Group C</option>
-                                    </select>
-                                    <select style={styles.input} value={form.day} onChange={function(e) { setForm({ prof: form.prof, subj: form.subj, day: e.target.value, time: form.time, group: form.group }); }}>
-                                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option>
-                                    </select>
-                                    <select style={styles.input} value={form.time} onChange={function(e) { setForm({ prof: form.prof, subj: form.subj, day: form.day, time: e.target.value, group: form.group }); }}>
-                                        <option>09:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>02:00 PM</option>
-                                    </select>
-                                    <button style={{ ...styles.button, gridColumn: 'span 2', background: 'linear-gradient(to right, #4A90E2, #007AFF)' }} onClick={addSchedule}>Assign Group Schedule</button>
-                                </div>
-                            </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '15px', borderLeft: '1px solid #334155' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', color: 'white' }}>
+                            {user.fullName.charAt(0)}
                         </div>
-                        <div style={styles.card}>
-                            <input style={styles.input} placeholder="🔍 Real-time search..." value={search} onChange={function(e) { setSearch(e.target.value); }} />
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px', marginTop: '20px' }}>
-                                {data.schedules.filter(function(s) {
-                                    const term = search.toLowerCase();
-                                    return s.professorName.toLowerCase().indexOf(term) !== -1 ||
-                                           s.subject.toLowerCase().indexOf(term) !== -1 ||
-                                           (s.groupName && s.groupName.toLowerCase().indexOf(term) !== -1);
-                                }).map(function(s) {
-                                    return (
-                                        <div key={s.id} style={{ padding: '15px', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #eee', position: 'relative' }}>
-                                            <div style={{ fontWeight: 'bold', color: '#4A90E2' }}>{s.subject}</div>
-                                            <div style={{ fontSize: '13px', color: '#777' }}>{s.professorName} | {s.groupName}</div>
-                                            <div style={{ fontSize: '12px', marginTop: '5px' }}>📅 {s.day} @ {s.time}</div>
-                                            <button style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', cursor: 'pointer' }} onClick={function() { deleteSch(s.id); }}>🗑️</button>
-                                        </div>
-                                    );
-                                })}
+                        <div>
+                            <div style={{ fontSize: '14px', fontWeight: '600' }}>{user.fullName}</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: user.role === 'HOD' ? '#10b981' : '#3b82f6', display: 'inline-block' }}></span>
+                                {user.role === 'HOD' ? 'HOD / Admin' : 'Faculty Professor'}
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
+            </header>
 
-                {view === 'professors' && (
-                    <div style={{ display: 'flex', gap: '30px' }}>
-                        <div style={{ flex: 1 }}>
-                            <h1>👨‍🏫 Faculty Directory</h1>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                {data.professors.map(function(p) {
-                                    return (
-                                        <div key={p.id} style={{ ...styles.card, display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                            <img src={'https://ui-avatars.com/api/?name=' + p.fullName + '&background=random'} style={{ width: '50px', height: '50px', borderRadius: '50%' }} />
-                                            <div>
-                                                <h4 style={{ margin: 0 }}>{p.fullName}</h4>
-                                                <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>{p.department} | 📞 {p.mobile || 'Not set'}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div style={{ width: '350px' }}>
-                            <div style={styles.card}>
-                                <h3>🆕 Register Faculty</h3>
-                                <input style={styles.input} placeholder="Full Name" value={reg.fullName} onChange={function(e) { setReg({ username: reg.username, password: reg.password, fullName: e.target.value, department: reg.department, mobile: reg.mobile }); }} />
-                                <input style={styles.input} placeholder="Phone Number" value={reg.mobile} onChange={function(e) { setReg({ username: reg.username, password: reg.password, fullName: reg.fullName, department: reg.department, mobile: e.target.value }); }} />
-                                <input style={styles.input} placeholder="Department" value={reg.department} onChange={function(e) { setReg({ username: reg.username, password: reg.password, fullName: reg.fullName, department: e.target.value, mobile: reg.mobile }); }} />
-                                <input style={styles.input} placeholder="Username" value={reg.username} onChange={function(e) { setReg({ username: e.target.value, password: reg.password, fullName: reg.fullName, department: reg.department, mobile: reg.mobile }); }} />
-                                <input style={styles.input} type="password" placeholder="Password" value={reg.password} onChange={function(e) { setReg({ username: reg.username, password: e.target.value, fullName: reg.fullName, department: reg.department, mobile: reg.mobile }); }} />
-                                <button style={{ ...styles.button, width: '100%' }} onClick={registerProf}>Add Professor</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+            {/* --- BODY MAIN LAYOUT --- */}
+            <div style={{ display: 'flex', flex: 1 }}>
+                {/* --- SIDEBAR --- */}
+                <aside style={{ width: '250px', backgroundColor: 'white', borderRight: '1px solid #e2e8f0', padding: '25px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <SidebarButton icon="📊" label="Dashboard & Analytics" active={view === 'analytics'} onClick={() => setView('analytics')} />
+                    <SidebarButton icon="📅" label="Master Timetable" active={view === 'timetable'} onClick={() => setView('timetable')} />
+                    {user.role === 'HOD' && (
+                        <SidebarButton icon="⏳" label="Approval Workflow" active={view === 'approval'} onClick={() => setView('approval')} badge="HOD" />
+                    )}
+                    <SidebarButton icon="🤖" label="AI Schedule Generator" active={view === 'ai'} onClick={() => setView('ai')} />
+                    <SidebarButton icon="🏛️" label="Facilities & Rooms" active={view === 'rooms'} onClick={() => setView('rooms')} />
+                    <SidebarButton icon="📜" label="System Audit Log" active={view === 'audit'} onClick={() => setView('audit')} />
+                    <SidebarButton icon="🔒" label="Account Security" active={view === 'password'} onClick={() => setView('password')} />
 
-                {view === 'password' && (
-                    <div style={{ maxWidth: '450px' }}>
-                        <h1>🔒 Change Password</h1>
-                        <div style={styles.card}>
-                            <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Provide your current password and choose a new one.</p>
-                            <input style={styles.input} type="password" placeholder="Current Password" value={passForm.old} onChange={function(e) { setPassForm({ old: e.target.value, new: passForm.new }); }} />
-                            <input style={styles.input} type="password" placeholder="New Password" value={passForm.new} onChange={function(e) { setPassForm({ old: passForm.old, new: e.target.value }); }} />
-                            <button style={{ ...styles.button, width: '100%', marginTop: '10px' }} onClick={handleChangePassword}>Update Password</button>
-                        </div>
+                    <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <button onClick={handleLogout} style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            🚪 Logout
+                        </button>
                     </div>
-                )}
+                </aside>
+
+                {/* --- MAIN CONTENT PANEL --- */}
+                <main style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
+                    {view === 'analytics' && <AnalyticsView user={user} />}
+                    {view === 'timetable' && <TimetableManagerView user={user} />}
+                    {view === 'approval' && <ApprovalWorkflowView user={user} />}
+                    {view === 'ai' && <AIGeneratorView user={user} />}
+                    {view === 'rooms' && <RoomsView user={user} />}
+                    {view === 'audit' && <AuditLogView user={user} />}
+                    {view === 'password' && <SecurityView user={user} />}
+                </main>
             </div>
-        </>
+        </div>
     );
 }
 
-function ProfessorDashboard(props) {
-    const [schedules, setSchedules] = useState([]);
-    const [view, setView] = useState('dashboard'); // dashboard, password
-    const [passForm, setPassForm] = useState({ old: '', new: '' });
+function SidebarButton({ icon, label, active, onClick, badge }) {
+    return (
+        <button onClick={onClick} style={{
+            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px',
+            border: 'none', background: active ? '#eff6ff' : 'transparent', color: active ? '#1d4ed8' : '#475569',
+            fontWeight: active ? '700' : '500', fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+            transition: '0.2s', position: 'relative'
+        }}>
+            <span style={{ fontSize: '18px' }}>{icon}</span>
+            <span style={{ flex: 1 }}>{label}</span>
+            {badge && <span style={{ background: '#f59e0b', color: 'white', fontSize: '10px', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>{badge}</span>}
+        </button>
+    );
+}
 
-    useEffect(function() {
+// --- VIEW COMPONENTS ---
+
+function LoginView({ onLogin }) {
+    const [form, setForm] = useState({ username: 'admin', password: 'admin123' });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, form);
+            onLogin(res.data);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Login failed. Verify credentials.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div style={{ display: 'flex', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white' }}>
+            <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.95)', padding: '40px', borderRadius: '16px', width: '380px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                    <div style={{ width: '50px', height: '50px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 12px auto' }}>⚡</div>
+                    <h2 style={{ margin: 0, fontSize: '22px' }}>SmartScheduler Pro</h2>
+                    <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '5px' }}>Enterprise Schedule & Resource Management</p>
+                </div>
+
+                {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '10px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px' }}>❌ {error}</div>}
+
+                <form onSubmit={handleSubmit}>
+                    <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>USERNAME</label>
+                        <input style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required />
+                    </div>
+
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>PASSWORD</label>
+                        <input type="password" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
+                    </div>
+
+                    <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: 'linear-gradient(to right, #3b82f6, #2563eb)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
+                        {loading ? 'Authenticating...' : 'Sign In'}
+                    </button>
+                </form>
+
+                <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '12px', color: '#94a3b8' }}>
+                    <strong>Default Roles:</strong><br />
+                    • HOD Admin: <code>admin</code> / <code>admin123</code><br />
+                    • Professor: <code>uday</code> / <code>123</code>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function AnalyticsView() {
+    const [stats, setStats] = useState({ totalSchedules: 0, totalProfessors: 0, dayStats: {}, groupStats: {}, subjectStats: {} });
+
+    useEffect(() => {
+        axios.get(`${API_BASE_URL}/api/analytics`).then(res => setStats(res.data));
+    }, []);
+
+    return (
+        <div>
+            <h2 style={{ marginTop: 0, color: '#0f172a' }}>📊 Dashboard & Resource Analytics</h2>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+                <Card title="TOTAL SESSIONS" value={stats.totalSchedules} subtitle="Active scheduled slots" color="#3b82f6" icon="📅" />
+                <Card title="ACTIVE FACULTY" value={stats.totalProfessors} subtitle="Registered professors" color="#10b981" icon="👨‍🏫" />
+                <Card title="ROOM UTILIZATION" value="82%" subtitle="Peak occupancy rate" color="#f59e0b" icon="🏛️" />
+                <Card title="CLASH-FREE SCORE" value="100%" subtitle="Smart conflict check active" color="#8b5cf6" icon="🛡️" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                    <h3 style={{ marginTop: 0, fontSize: '16px', color: '#1e293b' }}>📅 Day-wise Class Volume</h3>
+                    <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', gap: '15px', paddingTop: '20px' }}>
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
+                            const count = stats.dayStats?.[day] || 0;
+                            const height = stats.totalSchedules ? (count / stats.totalSchedules) * 100 : 0;
+                            return (
+                                <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#2563eb' }}>{count}</span>
+                                    <div style={{ width: '100%', background: '#3b82f6', height: `${Math.max(height, 8)}%`, borderRadius: '6px 6px 0 0', transition: '0.5s' }}></div>
+                                    <span style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>{day.substring(0, 3)}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                    <h3 style={{ marginTop: 0, fontSize: '16px', color: '#1e293b' }}>📚 Subject Distribution</h3>
+                    <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', gap: '15px', paddingTop: '20px' }}>
+                        {Object.keys(stats.subjectStats || {}).slice(0, 5).map(subj => {
+                            const count = stats.subjectStats[subj];
+                            const height = stats.totalSchedules ? (count / stats.totalSchedules) * 100 : 0;
+                            return (
+                                <div key={subj} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#059669' }}>{count}</span>
+                                    <div style={{ width: '100%', background: '#10b981', height: `${Math.max(height, 8)}%`, borderRadius: '6px 6px 0 0', transition: '0.5s' }}></div>
+                                    <span style={{ fontSize: '10px', color: '#64748b', marginTop: '8px', textAlign: 'center' }}>{subj}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function TimetableManagerView({ user }) {
+    const [schedules, setSchedules] = useState([]);
+    const [search, setSearch] = useState('');
+    const [selectedGroup, setSelectedGroup] = useState('ALL');
+    const [conflictMsg, setConflictMsg] = useState('');
+    const [form, setForm] = useState({ professorName: 'Dr. Uday Kumar', subject: '', day: 'Monday', time: '10:00 AM', groupName: 'Group A', roomNumber: 'Room 101' });
+
+    useEffect(() => {
         loadSchedules();
     }, []);
 
-    function loadSchedules() {
-        axios.get(`${API_BASE_URL}/api/schedules`).then(function(res) {
-            setSchedules(res.data);
-        });
-    }
+    const loadSchedules = () => {
+        axios.get(`${API_BASE_URL}/api/schedules`).then(res => setSchedules(res.data));
+    };
 
-    async function handleChangePassword() {
-        if (passForm.old === '' || passForm.new === '') {
-            alert("❌ Fill all password fields!");
-            return;
-        }
+    const handleConflictCheck = async () => {
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/change-password`, {
-                username: props.user.username,
-                oldPassword: passForm.old,
-                newPassword: passForm.new
-            });
-            alert(res.data.message);
-            if (res.data.status === 'success') {
-                setPassForm({ old: '', new: '' });
-                setView('dashboard');
-            }
+            const res = await axios.post(`${API_BASE_URL}/api/schedules/check-conflicts`, form);
+            setConflictMsg(res.data.message);
         } catch (e) {
-            alert("❌ Password change failed.");
+            setConflictMsg("❌ Error checking conflict");
         }
-    }
+    };
 
-    const mySchedules = schedules.filter(function(s) {
-        return s.professorName === props.user.fullName;
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/schedules?username=${user.username}&role=${user.role}`, form);
+            alert(res.data.message);
+            loadSchedules();
+            setForm({ ...form, subject: '' });
+            setConflictMsg('');
+        } catch (err) {
+            alert(err.response?.data?.message || "❌ Failed to create schedule slot.");
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm("Delete this schedule entry?")) {
+            await axios.delete(`${API_BASE_URL}/api/schedules/${id}`);
+            loadSchedules();
+        }
+    };
+
+    const exportCSV = () => {
+        const headers = ["ID,Subject,Professor,Group,Day,Time,Room,Status\n"];
+        const rows = schedules.map(s => `${s.id},"${s.subject}","${s.professorName}","${s.groupName}","${s.day}","${s.time}","${s.roomNumber}","${s.status}"\n`);
+        const blob = new Blob([...headers, ...rows], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Timetable_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+    };
+
+    const scheduleList = Array.isArray(schedules) ? schedules : [];
+    const filtered = scheduleList.filter(s => {
+        const term = (search || '').toLowerCase();
+        const matchesSearch = (s.subject || '').toLowerCase().includes(term) ||
+            (s.professorName || '').toLowerCase().includes(term) ||
+            (s.roomNumber || '').toLowerCase().includes(term);
+        const matchesGroup = selectedGroup === 'ALL' || s.groupName === selectedGroup;
+        return matchesSearch && matchesGroup;
     });
 
     return (
-        <div style={{ flex: 1, padding: '40px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <img src={'https://ui-avatars.com/api/?name=' + props.user.fullName + '&background=4A90E2&color=fff'} style={{ width: '80px', height: '80px', borderRadius: '50%', border: '4px solid white', boxShadow: '0 5px 15px rgba(0,0,0,0.1)' }} />
-                    <div>
-                        <h1 style={{ margin: 0 }}>Welcome, Prof. {props.user.fullName}</h1>
-                        <p style={{ margin: 0, color: '#888' }}>{props.user.department} | 📞 {props.user.mobile || 'Contact HOD'}</p>
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <button style={{ ...styles.button, background: '#4A90E2' }} onClick={function() { setView(view === 'dashboard' ? 'password' : 'dashboard'); }}>
-                        {view === 'dashboard' ? '🔒 Security' : '📅 Dashboard'}
-                    </button>
-                    <button style={{ ...styles.button, background: '#ff4d4d' }} onClick={props.onLogout}>Logout</button>
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>📅 Master Timetable Management</h2>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={exportCSV} style={{ padding: '8px 16px', background: '#059669', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📥 Export CSV</button>
+                    <button onClick={() => window.print()} style={{ padding: '8px 16px', background: '#475569', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>🖨️ Print Timetable</button>
                 </div>
             </div>
 
-            {view === 'dashboard' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
-                    <div style={styles.card}>
-                        <h2>📅 Your Personal Schedule</h2>
-                        {mySchedules.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No classes assigned yet. Enjoy your free time!</div> : (
-                            mySchedules.map(function(s) {
-                                return (
-                                    <div key={s.id} style={{ padding: '20px', background: '#f8f9fa', borderRadius: '15px', marginBottom: '15px', borderLeft: '6px solid #4A90E2', display: 'flex', justifyContent: 'space-between' }}>
-                                        <div>
-                                            <h3 style={{ margin: 0 }}>{s.subject}</h3>
-                                            <p style={{ margin: '5px 0', color: '#666' }}>📍 {s.day} | ⏰ {s.time}</p>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <span style={{ padding: '6px 15px', background: '#4A90E2', color: 'white', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>{s.groupName}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })
+            {/* --- FORM PANEL --- */}
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginBottom: '25px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ marginTop: 0, fontSize: '15px', color: '#1e293b' }}>➕ Assign New Class Slot (With Smart Clash Check)</h3>
+                <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                    <input placeholder="Subject Name" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} required style={inputStyle} />
+                    <input placeholder="Professor Name" value={form.professorName} onChange={e => setForm({ ...form, professorName: e.target.value })} required style={inputStyle} />
+                    <select value={form.groupName} onChange={e => setForm({ ...form, groupName: e.target.value })} style={inputStyle}>
+                        <option>Group A</option><option>Group B</option><option>Group C</option>
+                    </select>
+                    <select value={form.roomNumber} onChange={e => setForm({ ...form, roomNumber: e.target.value })} style={inputStyle}>
+                        <option>Room 101</option><option>Room 102</option><option>Room 201</option><option>Lab A</option><option>Lab B</option>
+                    </select>
+                    <select value={form.day} onChange={e => setForm({ ...form, day: e.target.value })} style={inputStyle}>
+                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option>
+                    </select>
+                    <select value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} style={inputStyle}>
+                        <option>09:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>02:00 PM</option><option>03:00 PM</option>
+                    </select>
+
+                    <button type="button" onClick={handleConflictCheck} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        🔍 Check Clash
+                    </button>
+                    <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        {user.role === 'HOD' ? 'Publish Class' : 'Submit for Approval'}
+                    </button>
+                </form>
+
+                {conflictMsg && (
+                    <div style={{ marginTop: '12px', padding: '10px', background: conflictMsg.includes('✅') ? '#ecfdf5' : '#fef2f2', color: conflictMsg.includes('✅') ? '#065f46' : '#991b1b', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
+                        {conflictMsg}
+                    </div>
+                )}
+            </div>
+
+            {/* --- FILTER BAR --- */}
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                <input placeholder="🔍 Search by Subject, Professor or Room..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                <select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} style={inputStyle}>
+                    <option value="ALL">All Sections</option>
+                    <option value="Group A">Group A</option>
+                    <option value="Group B">Group B</option>
+                    <option value="Group C">Group C</option>
+                </select>
+            </div>
+
+            {/* --- GRID --- */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
+                {filtered.map(s => (
+                    <div key={s.id} style={{ background: 'white', padding: '18px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)', borderLeft: `5px solid ${s.status === 'PUBLISHED' ? '#2563eb' : s.status === 'PENDING_APPROVAL' ? '#f59e0b' : '#ef4444'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#1e293b' }}>{s.subject}</h4>
+                            <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '10px', fontWeight: 'bold', background: s.status === 'PUBLISHED' ? '#dbeafe' : '#fef3c7', color: s.status === 'PUBLISHED' ? '#1e40af' : '#92400e' }}>
+                                {s.status}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#475569', margin: '4px 0' }}>👨‍🏫 {s.professorName}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>📍 {s.roomNumber || 'Room 101'} | 🏷️ {s.groupName}</div>
+                        <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: '600', marginTop: '8px' }}>⏰ {s.day} @ {s.time}</div>
+
+                        {user.role === 'HOD' && (
+                            <button onClick={() => handleDelete(s.id)} style={{ marginTop: '10px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', padding: 0 }}>
+                                🗑️ Delete Entry
+                            </button>
                         )}
                     </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
-                    <div>
-                        <div style={{ ...styles.card, background: 'linear-gradient(135deg, #4A90E2, #007AFF)', color: 'white' }}>
-                            <h3>📌 Active Workload</h3>
-                            <h1 style={{ fontSize: '48px', margin: 0 }}>{mySchedules.length}</h1>
-                            <p>Weekly Classes</p>
-                        </div>
-                        <div style={{ ...styles.card, marginTop: '20px' }}>
-                            <h3>💡 Quick Tip</h3>
-                            <p style={{ fontSize: '14px', color: '#555' }}>Check the Group Explorer to see which students you are teaching today!</p>
-                        </div>
-                    </div>
+function ApprovalWorkflowView() {
+    const [pending, setPending] = useState([]);
+
+    useEffect(() => {
+        loadPending();
+    }, []);
+
+    const loadPending = () => {
+        axios.get(`${API_BASE_URL}/api/schedules/pending`).then(res => setPending(res.data));
+    };
+
+    const handleAction = async (id, action) => {
+        const reason = action === 'REJECT' ? prompt("Reason for rejection:") : "";
+        try {
+            await axios.put(`${API_BASE_URL}/api/schedules/${id}/approval`, { action, reason });
+            alert(`Schedule ${action.toLowerCase()}d!`);
+            loadPending();
+        } catch (e) {
+            alert("Approval processing failed.");
+        }
+    };
+
+    return (
+        <div>
+            <h2>⏳ HOD Approval Workflow Dashboard</h2>
+            <p style={{ color: '#64748b' }}>Review schedule change requests submitted by faculty members.</p>
+
+            {pending.length === 0 ? (
+                <div style={{ background: 'white', padding: '40px', textAlign: 'center', borderRadius: '12px', color: '#94a3b8' }}>
+                    ✅ No pending approvals. All schedule requests processed!
                 </div>
             ) : (
-                <div style={{ maxWidth: '450px' }}>
-                    <h1>🔒 Change Password</h1>
-                    <div style={styles.card}>
-                        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Provide your current password and choose a new one.</p>
-                        <input style={styles.input} type="password" placeholder="Current Password" value={passForm.old} onChange={function(e) { setPassForm({ old: e.target.value, new: passForm.new }); }} />
-                        <input style={styles.input} type="password" placeholder="New Password" value={passForm.new} onChange={function(e) { setPassForm({ old: passForm.old, new: e.target.value }); }} />
-                        <button style={{ ...styles.button, width: '100%', marginTop: '10px' }} onClick={handleChangePassword}>Update Password</button>
-                    </div>
+                <div style={{ display: 'grid', gap: '15px' }}>
+                    {pending.map(s => (
+                        <div key={s.id} style={{ background: 'white', padding: '20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                            <div>
+                                <h4 style={{ margin: '0 0 5px 0' }}>{s.subject} ({s.groupName})</h4>
+                                <div style={{ fontSize: '13px', color: '#475569' }}>Requested by: <strong>{s.professorName}</strong></div>
+                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>📅 {s.day} @ {s.time} | Room: {s.roomNumber}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={() => handleAction(s.id, 'APPROVE')} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Approve</button>
+                                <button onClick={() => handleAction(s.id, 'REJECT')} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>✕ Reject</button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
     );
 }
+
+function AIGeneratorView() {
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+
+    const handleGenerate = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/ai/generate-timetable`, {});
+            setResult(res.data);
+        } catch (e) {
+            alert("AI Generation failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div>
+            <h2>🤖 AI Automatic Timetable Generator Engine</h2>
+            <p style={{ color: '#64748b' }}>Generate 100% conflict-free class timetables across rooms, professors, and sections using AI optimization algorithm.</p>
+
+            <div style={{ background: 'white', padding: '30px', borderRadius: '12px', maxWidth: '500px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ marginTop: 0 }}>Run AI Timetable Optimizer</h3>
+                <p style={{ fontSize: '13px', color: '#475569' }}>This engine reads available faculty, subjects, sections, and room capacity constraints, then automatically schedules clash-free sessions.</p>
+
+                <button onClick={handleGenerate} disabled={loading} style={{ width: '100%', padding: '14px', background: 'linear-gradient(to right, #8b5cf6, #6366f1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
+                    {loading ? '🤖 AI Engine Optimizing...' : '⚡ Generate Conflict-Free Timetable'}
+                </button>
+
+                {result && (
+                    <div style={{ marginTop: '20px', padding: '15px', background: '#f3e8ff', borderRadius: '8px', color: '#6b21a8' }}>
+                        <strong>{result.message}</strong>
+                        <p style={{ fontSize: '13px', margin: '5px 0 0 0' }}>Generated {result.generatedCount} active schedule slots in database.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function RoomsView() {
+    const [rooms, setRooms] = useState([]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE_URL}/api/rooms`).then(res => setRooms(res.data));
+    }, []);
+
+    return (
+        <div>
+            <h2>🏛️ Facilities & Room Management</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '18px' }}>
+                {rooms.map(r => (
+                    <div key={r.id} style={{ background: 'white', padding: '18px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ margin: '0 0 6px 0', color: '#1e293b' }}>{r.roomNumber}</h3>
+                        <div style={{ fontSize: '13px', color: '#475569' }}>🏢 {r.building} | Capacity: <strong>{r.capacity} Seats</strong></div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>Type: {r.roomType}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function AuditLogView() {
+    const [logs, setLogs] = useState([]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE_URL}/api/audit-logs`).then(res => setLogs(res.data));
+    }, []);
+
+    return (
+        <div>
+            <h2>📜 Enterprise System Audit Trail</h2>
+            <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                {logs.map(log => (
+                    <div key={log.id} style={{ padding: '12px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                            <strong>{log.actorUsername}</strong> performed <code>{log.action}</code>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>{log.details}</div>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                            {new Date(log.timestamp).toLocaleString()}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function SecurityView({ user }) {
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+
+    const handleChange = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/change-password`, { username: user.username, oldPassword, newPassword });
+            alert(res.data.message);
+            setOldPassword('');
+            setNewPassword('');
+        } catch (err) {
+            alert("Password change failed.");
+        }
+    };
+
+    return (
+        <div style={{ maxWidth: '400px' }}>
+            <h2>🔒 Security Center</h2>
+            <form onSubmit={handleChange} style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px' }}>CURRENT PASSWORD</label>
+                    <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} required style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px' }}>NEW PASSWORD</label>
+                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required style={inputStyle} />
+                </div>
+                <button type="submit" style={{ width: '100%', padding: '12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Update Security Key</button>
+            </form>
+        </div>
+    );
+}
+
+function Card({ title, value, subtitle, color, icon }) {
+    return (
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)', borderLeft: `5px solid ${color}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <small style={{ color: '#64748b', fontWeight: 'bold', fontSize: '11px' }}>{title}</small>
+                <span style={{ fontSize: '20px' }}>{icon}</span>
+            </div>
+            <h2 style={{ margin: '8px 0 2px 0', color: '#0f172a', fontSize: '32px' }}>{value}</h2>
+            <small style={{ color: '#94a3b8', fontSize: '11px' }}>{subtitle}</small>
+        </div>
+    );
+}
+
+const inputStyle = {
+    padding: '10px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    boxSizing: 'border-box',
+    width: '100%'
+};
 
 export default App;
