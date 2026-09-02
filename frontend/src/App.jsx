@@ -131,9 +131,13 @@ function App() {
                     {user.role === 'HOD' && (
                         <SidebarButton icon="⏳" label="Approval Workflow" active={view === 'approval'} onClick={() => setView('approval')} badge="HOD" />
                     )}
-                    <SidebarButton icon="🤖" label="AI Schedule Generator" active={view === 'ai'} onClick={() => setView('ai')} />
+                    {user.role === 'HOD' && (
+                        <SidebarButton icon="🤖" label="AI Schedule Generator" active={view === 'ai'} onClick={() => setView('ai')} badge="HOD" />
+                    )}
                     <SidebarButton icon="🏛️" label="Facilities & Rooms" active={view === 'rooms'} onClick={() => setView('rooms')} />
-                    <SidebarButton icon="📜" label="System Audit Log" active={view === 'audit'} onClick={() => setView('audit')} />
+                    {user.role === 'HOD' && (
+                        <SidebarButton icon="📜" label="System Audit Log" active={view === 'audit'} onClick={() => setView('audit')} badge="HOD" />
+                    )}
                     <SidebarButton icon="🔒" label="Account Security" active={view === 'password'} onClick={() => setView('password')} />
 
                     <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -147,10 +151,10 @@ function App() {
                 <main style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
                     {view === 'analytics' && <AnalyticsView user={user} />}
                     {view === 'timetable' && <TimetableManagerView user={user} />}
-                    {view === 'approval' && <ApprovalWorkflowView user={user} />}
-                    {view === 'ai' && <AIGeneratorView user={user} />}
+                    {view === 'approval' && user.role === 'HOD' && <ApprovalWorkflowView user={user} />}
+                    {view === 'ai' && user.role === 'HOD' && <AIGeneratorView user={user} />}
                     {view === 'rooms' && <RoomsView user={user} />}
-                    {view === 'audit' && <AuditLogView user={user} />}
+                    {view === 'audit' && user.role === 'HOD' && <AuditLogView user={user} />}
                     {view === 'password' && <SecurityView user={user} />}
                 </main>
             </div>
