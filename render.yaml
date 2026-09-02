@@ -1,8 +1,9 @@
+version: "1"
 services:
-  # Spring Boot Backend Service (Docker)
+  # Spring Boot Backend Service (Docker Web Service)
   - type: web
     name: smartscheduler-backend
-    runtime: docker
+    env: docker
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     envVars:
@@ -13,10 +14,9 @@ services:
       - key: SPRING_DATASOURCE_URL
         value: "jdbc:h2:mem:smartscheduler_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
 
-  # React Vite Frontend (Static Site)
-  - type: web
+  # React Vite Frontend (Static Web Site)
+  - type: static
     name: smartscheduler-frontend
-    runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     routes:
