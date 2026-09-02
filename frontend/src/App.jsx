@@ -343,6 +343,14 @@ function TimetableManagerView({ user }) {
         a.click();
     };
 
+    const [showOnlyMine, setShowOnlyMine] = useState(user.role !== 'HOD');
+
+    useEffect(() => {
+        if (user.role !== 'HOD' && user.fullName) {
+            setForm(prev => ({ ...prev, professorName: user.fullName }));
+        }
+    }, [user]);
+
     const scheduleList = Array.isArray(schedules) ? schedules : [];
     const filtered = scheduleList.filter(s => {
         const term = (search || '').toLowerCase();
@@ -350,7 +358,8 @@ function TimetableManagerView({ user }) {
             (s.professorName || '').toLowerCase().includes(term) ||
             (s.roomNumber || '').toLowerCase().includes(term);
         const matchesGroup = selectedGroup === 'ALL' || s.groupName === selectedGroup;
-        return matchesSearch && matchesGroup;
+        const matchesMine = !showOnlyMine || (s.professorName || '').toLowerCase().includes((user.fullName || user.username || '').toLowerCase());
+        return matchesSearch && matchesGroup && matchesMine;
     });
 
     return (
@@ -398,7 +407,7 @@ function TimetableManagerView({ user }) {
             </div>
 
             {/* --- FILTER BAR --- */}
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <input placeholder="🔍 Search by Subject, Professor or Room..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
                 <select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} style={inputStyle}>
                     <option value="ALL">All Sections</option>
@@ -406,6 +415,11 @@ function TimetableManagerView({ user }) {
                     <option value="Group B">Group B</option>
                     <option value="Group C">Group C</option>
                 </select>
+                <button
+                    onClick={() => setShowOnlyMine(!showOnlyMine)}
+                    style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: showOnlyMine ? '#3b82f6' : '#f8fafc', color: showOnlyMine ? 'white' : '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                    {showOnlyMine ? `👤 My Personal Timetable Only` : `🌐 View All Department Schedules`}
+                </button>
             </div>
 
             {/* --- GRID --- */}
