@@ -31,6 +31,9 @@ public class ScheduleService {
     @Autowired
     private EmailService emailService;
 
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:2211cs010407@gmail.com}")
+    private String targetMailUsername = "2211cs010407@gmail.com";
+
     public List<Schedule> getAllSchedules() {
         return scheduleRepository.findAll();
     }
@@ -76,7 +79,7 @@ public class ScheduleService {
 
         // Email Notification Dispatch
         emailService.sendScheduleNotification(
-                s.getProfessorName().toLowerCase().replace(" ", ".") + "@university.edu",
+                targetMailUsername,
                 "📅 SmartScheduler Alert: New Class Assigned - " + s.getSubject(),
                 "Dear " + s.getProfessorName() + ",\n\nA new class session for '" + s.getSubject() +
                 "' has been assigned to you on " + s.getDay() + " at " + s.getTime() + " in " + s.getRoomNumber() + ".\nStatus: " + s.getStatus()
@@ -104,7 +107,7 @@ public class ScheduleService {
 
         // Email Status Update Alert
         emailService.sendScheduleNotification(
-                s.getProfessorName().toLowerCase().replace(" ", ".") + "@university.edu",
+                targetMailUsername,
                 "🔔 SmartScheduler Alert: Schedule Approval Status Updated - " + status,
                 "Dear " + s.getProfessorName() + ",\n\nYour proposed class '" + s.getSubject() +
                 "' for " + s.getDay() + " @ " + s.getTime() + " has been updated to: " + status +
