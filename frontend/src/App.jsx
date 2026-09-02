@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost:5173') ? 'http://localhost:8080' : window.location.origin);
+const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost:5173') ? 'http://localhost:8080' : 'https://smartscheduler-backend-us41.onrender.com');
 
 // Setup Axios Interceptor for JWT Authentication
 axios.interceptors.request.use(
