@@ -31,8 +31,8 @@ public class ScheduleService {
     @Autowired
     private EmailService emailService;
 
-    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:2211cs010407@gmail.com}")
-    private String targetMailUsername = "2211cs010407@gmail.com";
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:nudaykumar2005@gmail.com}")
+    private String targetMailUsername = "nudaykumar2005@gmail.com";
 
     public List<Schedule> getAllSchedules() {
         return scheduleRepository.findAll();
