@@ -3,9 +3,9 @@ services:
   # Spring Boot Backend Service (Docker Web Service)
   - type: web
     name: smartscheduler-backend
-    env: docker
-    dockerContext: ./backend
-    dockerfilePath: Dockerfile
+    env: java
+    buildCommand: cd backend && mvn clean package -DskipTests
+    startCommand: java -Xmx384m -Xms256m -jar backend/target/backend-0.0.1-SNAPSHOT.jar
     envVars:
       - key: PORT
         value: "8080"
