@@ -14,7 +14,7 @@ const getApiBaseUrl = () => {
         if (window.location.origin.includes('localhost')) {
             return 'http://localhost:8080';
         }
-        return window.location.origin.replace('-frontend', '-backend');
+        return 'https://smartscheduler-backend-us41.onrender.com';
     }
     return 'http://localhost:8080';
 };
