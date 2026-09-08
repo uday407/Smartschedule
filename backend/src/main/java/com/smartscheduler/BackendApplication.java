@@ -18,9 +18,7 @@ public class BackendApplication {
     @Bean
     public CommandLineRunner initDatabase(UserRepository userRepository, ScheduleRepository scheduleRepository) {
         return args -> {
-            if (userRepository.count() <= 3) {
-                userRepository.deleteAll();
-
+            if (!userRepository.existsByUsername("admin")) {
                 User admin = new User();
                 admin.setUsername("admin");
                 admin.setPassword("admin123");
@@ -29,7 +27,20 @@ public class BackendApplication {
                 admin.setDepartment("Computer Science");
                 admin.setEmailVerified(true);
                 userRepository.save(admin);
+            }
 
+            if (!userRepository.existsByUsername("uday")) {
+                User uday = new User();
+                uday.setUsername("uday");
+                uday.setPassword("123");
+                uday.setFullName("Dr. Uday Kumar");
+                uday.setRole("PROFESSOR");
+                uday.setDepartment("Computer Science");
+                uday.setEmailVerified(true);
+                userRepository.save(uday);
+            }
+
+            if (!userRepository.existsByUsername("n.udaykumar2005@gmail.com")) {
                 User prof1 = new User();
                 prof1.setUsername("n.udaykumar2005@gmail.com");
                 prof1.setPassword("123");
@@ -38,7 +49,9 @@ public class BackendApplication {
                 prof1.setDepartment("Computer Science");
                 prof1.setEmailVerified(true);
                 userRepository.save(prof1);
+            }
 
+            if (!userRepository.existsByUsername("srikanth.prof@university.edu")) {
                 User prof2 = new User();
                 prof2.setUsername("srikanth.prof@university.edu");
                 prof2.setPassword("123");
@@ -47,7 +60,9 @@ public class BackendApplication {
                 prof2.setDepartment("Computer Science");
                 prof2.setEmailVerified(true);
                 userRepository.save(prof2);
+            }
 
+            if (!userRepository.existsByUsername("anitha.sharma@university.edu")) {
                 User prof3 = new User();
                 prof3.setUsername("anitha.sharma@university.edu");
                 prof3.setPassword("123");
@@ -56,7 +71,9 @@ public class BackendApplication {
                 prof3.setDepartment("Information Technology");
                 prof3.setEmailVerified(true);
                 userRepository.save(prof3);
+            }
 
+            if (!userRepository.existsByUsername("rajesh.verma@university.edu")) {
                 User prof4 = new User();
                 prof4.setUsername("rajesh.verma@university.edu");
                 prof4.setPassword("123");
@@ -65,9 +82,9 @@ public class BackendApplication {
                 prof4.setDepartment("Artificial Intelligence");
                 prof4.setEmailVerified(true);
                 userRepository.save(prof4);
-
-                System.out.println("✅ Auto Setup: Seeded expanded professor & admin accounts!");
             }
+
+            System.out.println("✅ Auto Setup: Seeded default accounts (admin/admin123, uday/123, n.udaykumar2005@gmail.com/123)!");
 
             if (scheduleRepository.count() <= 6) {
                 scheduleRepository.deleteAll();
