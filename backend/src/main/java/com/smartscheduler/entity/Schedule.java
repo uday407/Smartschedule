@@ -19,6 +19,8 @@ public class Schedule {
     @Column(nullable = false)
     private String professorName;
 
+    private String professorEmail;
+
     @Column(nullable = false)
     private String subject;
 
@@ -46,6 +48,9 @@ public class Schedule {
 
     public String getProfessorName() { return professorName; }
     public void setProfessorName(String professorName) { this.professorName = professorName; }
+
+    public String getProfessorEmail() { return professorEmail; }
+    public void setProfessorEmail(String professorEmail) { this.professorEmail = professorEmail; }
 
     public String getSubject() { return subject; }
     public void setSubject(String subject) { this.subject = subject; }

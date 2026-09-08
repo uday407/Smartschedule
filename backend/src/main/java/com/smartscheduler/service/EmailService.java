@@ -39,4 +39,15 @@ public class EmailService {
             log.info("ℹ️ [In-App Notification Center] Recipient: {} | Subject: {}\nBody:\n{}", toEmail, subject, content);
         }
     }
+
+    @Async
+    public void sendVerificationCode(String toEmail, String code) {
+        String subject = "🔒 SmartScheduler-Plus: Your Email Verification Code";
+        String content = "Welcome to SmartScheduler-Plus!\n\n" +
+                "Your 6-digit email verification code is: " + code + "\n\n" +
+                "This code will expire in 15 minutes. If you did not request this code, please ignore this email.";
+        
+        log.info("🔑 [Email Verification Dispatch] Code '{}' generated for '{}'", code, toEmail);
+        sendScheduleNotification(toEmail, subject, content);
+    }
 }

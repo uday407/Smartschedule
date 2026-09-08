@@ -18,6 +18,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import com.smartscheduler.dto.VerifyEmailRequest;
+import com.smartscheduler.service.EmailService;
+import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,6 +45,9 @@ public class AuthController {
     @Autowired
     private RefreshTokenService refreshTokenService;
 
+    @Autowired
+    private EmailService emailService;
+
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -62,7 +69,8 @@ public class AuthController {
                 user.getFullName(),
                 user.getRole(),
                 user.getDepartment(),
-                user.getMobile()
+                user.getMobile(),
+                user.isEmailVerified()
         ));
     }
 
@@ -78,7 +86,7 @@ public class AuthController {
                     user.getUsername(), null, java.util.Collections.emptyList());
             String jwt = tokenProvider.generateToken(auth);
             return ResponseEntity.ok(new AuthResponse(jwt, requestRefreshToken, user.getUsername(),
-                    user.getFullName(), user.getRole(), user.getDepartment(), user.getMobile()));
+                    user.getFullName(), user.getRole(), user.getDepartment(), user.getMobile(), user.isEmailVerified()));
         }
 
         return ResponseEntity.badRequest().body(new ApiResponse(false, "Refresh token is invalid or expired!"));
@@ -107,10 +115,77 @@ public class AuthController {
             user.setImageUrl("https://ui-avatars.com/api/?name=" + user.getFullName());
         }
 
+        // Generate 6-digit OTP for Email Verification
+        String code = String.format("%06d", new Random().nextInt(900000) + 100000);
+        user.setEmailVerified(false);
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
+
         User saved = userRepository.save(user);
         auditService.logAction("ADMIN", "REGISTER_USER", "User", saved.getId(), "Registered new user: " + saved.getUsername() + " (" + saved.getRole() + ")");
 
-        return ResponseEntity.ok(new ApiResponse(true, "User registered successfully!"));
+        // Dispatch verification email
+        emailService.sendVerificationCode(saved.getUsername(), code);
+
+        return ResponseEntity.ok(new ApiResponse(true, "User registered successfully! Verification OTP code dispatched to email."));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        Optional<User> userOpt = userRepository.findByUsername(request.getUsername());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "User not found!"));
+        }
+
+        User user = userOpt.get();
+        if (user.isEmailVerified()) {
+            return ResponseEntity.ok(new ApiResponse(true, "Email is already verified."));
+        }
+
+        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(request.getCode())) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Invalid verification code!"));
+        }
+
+        if (user.getVerificationCodeExpiry() != null && user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Verification code has expired! Please request a new code."));
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+        userRepository.save(user);
+
+        auditService.logAction(user.getUsername(), "VERIFY_EMAIL", "User", user.getId(), "Email verified successfully");
+
+        return ResponseEntity.ok(new ApiResponse(true, "Email verified successfully!"));
+    }
+
+    @PostMapping("/resend-code")
+    public ResponseEntity<ApiResponse> resendVerificationCode(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        if (username == null || username.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Username is required!"));
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "User not found!"));
+        }
+
+        User user = userOpt.get();
+        if (user.isEmailVerified()) {
+            return ResponseEntity.ok(new ApiResponse(true, "Email is already verified."));
+        }
+
+        String code = String.format("%06d", new Random().nextInt(900000) + 100000);
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(user.getUsername(), code);
+        auditService.logAction(user.getUsername(), "RESEND_VERIFICATION_CODE", "User", user.getId(), "Resent email verification OTP");
+
+        return ResponseEntity.ok(new ApiResponse(true, "A new 6-digit verification OTP code has been sent to your email."));
     }
 
     @PostMapping("/change-password")

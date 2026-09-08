@@ -13,6 +13,11 @@ services:
         value: "-Xmx384m -Xms256m"
       - key: SPRING_DATASOURCE_URL
         value: "jdbc:h2:mem:smartscheduler_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+      - key: SPRING_MAIL_USERNAME
+        value: "n.udaykumar2005@gmail.com"
+      - key: SPRING_MAIL_PASSWORD
+        value: "ninpgitexztnqthl"
+
 
   # React Vite Frontend (Static Web Site)
   - type: web

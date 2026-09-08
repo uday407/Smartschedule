@@ -29,6 +29,13 @@ public class User {
     private String mobile;
     private String imageUrl;
 
+    @Column(nullable = false)
+    private boolean emailVerified = true;
+
+    private String verificationCode;
+
+    private java.time.LocalDateTime verificationCodeExpiry;
+
     public User() {}
 
     public User(String username, String password, String fullName, String role, String department, String mobile) {
@@ -38,6 +45,7 @@ public class User {
         this.role = role;
         this.department = department;
         this.mobile = mobile;
+        this.emailVerified = true;
     }
 
     public Long getId() { return id; }
@@ -63,4 +71,13 @@ public class User {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public String getVerificationCode() { return verificationCode; }
+    public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
+
+    public java.time.LocalDateTime getVerificationCodeExpiry() { return verificationCodeExpiry; }
+    public void setVerificationCodeExpiry(java.time.LocalDateTime verificationCodeExpiry) { this.verificationCodeExpiry = verificationCodeExpiry; }
 }

@@ -180,19 +180,75 @@ function SidebarButton({ icon, label, active, onClick, badge }) {
 // --- VIEW COMPONENTS ---
 
 function LoginView({ onLogin }) {
+    const [mode, setMode] = useState('login'); // 'login', 'register', 'verify'
     const [form, setForm] = useState({ username: 'admin', password: 'admin123' });
-    const [error, setError] = useState('');
+    const [regForm, setRegForm] = useState({ username: '', password: '', fullName: '', department: 'Computer Science', mobile: '', role: 'PROFESSOR' });
+    const [verifyForm, setVerifyForm] = useState({ username: '', code: '' });
+    const [msg, setMsg] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
+    const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setMsg({ type: '', text: '' });
         setLoading(true);
         try {
             const res = await axios.post(`${API_BASE_URL}/api/auth/login`, form);
             onLogin(res.data);
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed. Verify credentials.');
+            setMsg({ type: 'error', text: err.response?.data?.message || 'Login failed. Verify credentials.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRegisterSubmit = async (e) => {
+        e.preventDefault();
+        setMsg({ type: '', text: '' });
+        setLoading(true);
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/register`, regForm);
+            setMsg({ type: 'success', text: res.data.message || 'Registration successful! Verification code sent to your email.' });
+            setVerifyForm({ username: regForm.username, code: '' });
+            setTimeout(() => {
+                setMode('verify');
+            }, 1000);
+        } catch (err) {
+            setMsg({ type: 'error', text: err.response?.data?.message || 'Registration failed.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifySubmit = async (e) => {
+        e.preventDefault();
+        setMsg({ type: '', text: '' });
+        setLoading(true);
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/verify-email`, verifyForm);
+            setMsg({ type: 'success', text: '✅ Email verified successfully! You can now log in.' });
+            setTimeout(() => {
+                setForm({ username: verifyForm.username, password: '' });
+                setMode('login');
+            }, 1500);
+        } catch (err) {
+            setMsg({ type: 'error', text: err.response?.data?.message || 'Verification failed. Invalid code.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendCode = async () => {
+        if (!verifyForm.username) {
+            setMsg({ type: 'error', text: 'Please enter your email/username.' });
+            return;
+        }
+        setMsg({ type: '', text: '' });
+        setLoading(true);
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/resend-code`, { username: verifyForm.username });
+            setMsg({ type: 'success', text: res.data.message || 'Verification code resent!' });
+        } catch (err) {
+            setMsg({ type: 'error', text: err.response?.data?.message || 'Failed to resend code.' });
         } finally {
             setLoading(false);
         }
@@ -200,36 +256,106 @@ function LoginView({ onLogin }) {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white' }}>
-            <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.95)', padding: '40px', borderRadius: '16px', width: '380px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.95)', padding: '40px', borderRadius: '16px', width: '400px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ textAlign: 'center', marginBottom: '25px' }}>
                     <div style={{ width: '50px', height: '50px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 12px auto' }}>⚡</div>
                     <h2 style={{ margin: 0, fontSize: '22px' }}>SmartScheduler Pro</h2>
-                    <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '5px' }}>Enterprise Schedule & Resource Management</p>
+                    <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '5px' }}>
+                        {mode === 'login' && 'Enterprise Schedule & Resource Management'}
+                        {mode === 'register' && 'Create Faculty / Admin Account'}
+                        {mode === 'verify' && '🔒 Email Verification (OTP Verification)'}
+                    </p>
                 </div>
 
-                {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '10px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px' }}>❌ {error}</div>}
-
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>USERNAME</label>
-                        <input style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required />
+                {msg.text && (
+                    <div style={{ background: msg.type === 'error' ? '#fef2f2' : '#ecfdf5', color: msg.type === 'error' ? '#991b1b' : '#065f46', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px', border: `1px solid ${msg.type === 'error' ? '#fca5a5' : '#a7f3d0'}` }}>
+                        {msg.text}
                     </div>
+                )}
 
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>PASSWORD</label>
-                        <input type="password" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
-                    </div>
+                {mode === 'login' && (
+                    <form onSubmit={handleLoginSubmit}>
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>USERNAME / EMAIL</label>
+                            <input style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required />
+                        </div>
 
-                    <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: 'linear-gradient(to right, #3b82f6, #2563eb)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
-                        {loading ? 'Authenticating...' : 'Sign In'}
-                    </button>
-                </form>
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>PASSWORD</label>
+                            <input type="password" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
+                        </div>
 
-                <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '12px', color: '#94a3b8' }}>
-                    <strong>Default Roles:</strong><br />
-                    • HOD Admin: <code>admin</code> / <code>admin123</code><br />
-                    • Professor: <code>uday</code> / <code>123</code>
-                </div>
+                        <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: 'linear-gradient(to right, #3b82f6, #2563eb)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '12px' }}>
+                            {loading ? 'Authenticating...' : 'Sign In'}
+                        </button>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8' }}>
+                            <button type="button" onClick={() => { setMsg({ type: '', text: '' }); setMode('register'); }} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '12px', padding: 0 }}>Register New User</button>
+                            <button type="button" onClick={() => { setMsg({ type: '', text: '' }); setMode('verify'); }} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '12px', padding: 0 }}>Verify Email OTP</button>
+                        </div>
+
+                        <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '12px', color: '#94a3b8' }}>
+                            <strong>Default Accounts:</strong><br />
+                            • HOD Admin: <code>admin</code> / <code>admin123</code><br />
+                            • Professor: <code>uday</code> / <code>123</code>
+                        </div>
+                    </form>
+                )}
+
+                {mode === 'register' && (
+                    <form onSubmit={handleRegisterSubmit}>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#cbd5e1', marginBottom: '4px', fontWeight: '600' }}>EMAIL / USERNAME</label>
+                            <input type="email" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={regForm.username} onChange={e => setRegForm({ ...regForm, username: e.target.value })} placeholder="prof@university.edu" required />
+                        </div>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#cbd5e1', marginBottom: '4px', fontWeight: '600' }}>FULL NAME</label>
+                            <input style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={regForm.fullName} onChange={e => setRegForm({ ...regForm, fullName: e.target.value })} placeholder="Dr. Jane Doe" required />
+                        </div>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#cbd5e1', marginBottom: '4px', fontWeight: '600' }}>PASSWORD</label>
+                            <input type="password" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={regForm.password} onChange={e => setRegForm({ ...regForm, password: e.target.value })} required />
+                        </div>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#cbd5e1', marginBottom: '4px', fontWeight: '600' }}>ROLE</label>
+                            <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={regForm.role} onChange={e => setRegForm({ ...regForm, role: e.target.value })}>
+                                <option value="PROFESSOR">Professor / Faculty</option>
+                                <option value="HOD">Department HOD / Admin</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: 'linear-gradient(to right, #10b981, #059669)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '10px' }}>
+                            {loading ? 'Registering...' : 'Register Account'}
+                        </button>
+
+                        <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                            <button type="button" onClick={() => { setMsg({ type: '', text: '' }); setMode('login'); }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '12px' }}>Back to Sign In</button>
+                        </div>
+                    </form>
+                )}
+
+                {mode === 'verify' && (
+                    <form onSubmit={handleVerifySubmit}>
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>EMAIL / USERNAME</label>
+                            <input style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box' }} value={verifyForm.username} onChange={e => setVerifyForm({ ...verifyForm, username: e.target.value })} placeholder="Registered email..." required />
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '5px', fontWeight: '600' }}>6-DIGIT VERIFICATION CODE (OTP)</label>
+                            <input style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', background: '#0f172a', color: '#38bdf8', fontSize: '20px', letterSpacing: '4px', textAlign: 'center', fontWeight: 'bold', boxSizing: 'border-box' }} value={verifyForm.code} onChange={e => setVerifyForm({ ...verifyForm, code: e.target.value })} placeholder="123456" maxLength={6} required />
+                        </div>
+
+                        <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: 'linear-gradient(to right, #8b5cf6, #6d28d9)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '12px' }}>
+                            {loading ? 'Verifying...' : 'Verify Code'}
+                        </button>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                            <button type="button" onClick={handleResendCode} disabled={loading} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0 }}>🔄 Resend Code</button>
+                            <button type="button" onClick={() => { setMsg({ type: '', text: '' }); setMode('login'); }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}>Back to Sign In</button>
+                        </div>
+                    </form>
+                )}
             </div>
         </div>
     );
@@ -297,7 +423,7 @@ function TimetableManagerView({ user }) {
     const [search, setSearch] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('ALL');
     const [conflictMsg, setConflictMsg] = useState('');
-    const [form, setForm] = useState({ professorName: 'Dr. Uday Kumar', subject: '', day: 'Monday', time: '10:00 AM', groupName: 'Group A', roomNumber: 'Room 101' });
+    const [form, setForm] = useState({ professorName: 'Dr. Uday Kumar', professorEmail: user.username || 'n.udaykumar2005@gmail.com', subject: '', day: 'Monday', time: '10:00 AM', groupName: 'Group A', roomNumber: 'Room 101' });
 
     useEffect(() => {
         loadSchedules();
@@ -337,8 +463,8 @@ function TimetableManagerView({ user }) {
     };
 
     const exportCSV = () => {
-        const headers = ["ID,Subject,Professor,Group,Day,Time,Room,Status\n"];
-        const rows = schedules.map(s => `${s.id},"${s.subject}","${s.professorName}","${s.groupName}","${s.day}","${s.time}","${s.roomNumber}","${s.status}"\n`);
+        const headers = ["ID,Subject,Professor,Professor Email,Group,Day,Time,Room,Status\n"];
+        const rows = schedules.map(s => `${s.id},"${s.subject}","${s.professorName}","${s.professorEmail || ''}","${s.groupName}","${s.day}","${s.time}","${s.roomNumber}","${s.status}"\n`);
         const blob = new Blob([...headers, ...rows], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -350,8 +476,12 @@ function TimetableManagerView({ user }) {
     const [showOnlyMine, setShowOnlyMine] = useState(user.role !== 'HOD');
 
     useEffect(() => {
-        if (user.role !== 'HOD' && user.fullName) {
-            setForm(prev => ({ ...prev, professorName: user.fullName }));
+        if (user.role !== 'HOD') {
+            setForm(prev => ({
+                ...prev,
+                professorName: user.fullName || prev.professorName,
+                professorEmail: user.username && user.username.includes('@') ? user.username : prev.professorEmail
+            }));
         }
     }, [user]);
 
@@ -360,6 +490,7 @@ function TimetableManagerView({ user }) {
         const term = (search || '').toLowerCase();
         const matchesSearch = (s.subject || '').toLowerCase().includes(term) ||
             (s.professorName || '').toLowerCase().includes(term) ||
+            (s.professorEmail || '').toLowerCase().includes(term) ||
             (s.roomNumber || '').toLowerCase().includes(term);
         const matchesGroup = selectedGroup === 'ALL' || s.groupName === selectedGroup;
         const matchesMine = !showOnlyMine || (s.professorName || '').toLowerCase().includes((user.fullName || user.username || '').toLowerCase());
@@ -378,10 +509,11 @@ function TimetableManagerView({ user }) {
 
             {/* --- FORM PANEL --- */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginBottom: '25px', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ marginTop: 0, fontSize: '15px', color: '#1e293b' }}>➕ Assign New Class Slot (With Smart Clash Check)</h3>
+                <h3 style={{ marginTop: 0, fontSize: '15px', color: '#1e293b' }}>➕ Assign New Class Slot (With Dynamic Professor Email Alerts)</h3>
                 <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                     <input placeholder="Subject Name" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} required style={inputStyle} />
                     <input placeholder="Professor Name" value={form.professorName} onChange={e => setForm({ ...form, professorName: e.target.value })} required style={inputStyle} />
+                    <input type="email" placeholder="Professor Email (for alerts)" value={form.professorEmail} onChange={e => setForm({ ...form, professorEmail: e.target.value })} required style={inputStyle} />
                     <select value={form.groupName} onChange={e => setForm({ ...form, groupName: e.target.value })} style={inputStyle}>
                         <option>Group A</option><option>Group B</option><option>Group C</option>
                     </select>

@@ -9,6 +9,7 @@ public class AuthResponse {
     private String role;
     private String department;
     private String mobile;
+    private boolean emailVerified = true;
 
     public AuthResponse() {}
 
@@ -29,6 +30,17 @@ public class AuthResponse {
         this.role = role;
         this.department = department;
         this.mobile = mobile;
+    }
+
+    public AuthResponse(String token, String refreshToken, String username, String fullName, String role, String department, String mobile, boolean emailVerified) {
+        this.token = token;
+        this.refreshToken = refreshToken;
+        this.username = username;
+        this.fullName = fullName;
+        this.role = role;
+        this.department = department;
+        this.mobile = mobile;
+        this.emailVerified = emailVerified;
     }
 
     public String getToken() { return token; }
@@ -54,4 +66,7 @@ public class AuthResponse {
 
     public String getMobile() { return mobile; }
     public void setMobile(String mobile) { this.mobile = mobile; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
 }

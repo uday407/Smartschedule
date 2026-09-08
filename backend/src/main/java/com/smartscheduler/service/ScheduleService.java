@@ -4,6 +4,7 @@ import com.smartscheduler.entity.Schedule;
 import com.smartscheduler.exception.ConflictException;
 import com.smartscheduler.exception.ResourceNotFoundException;
 import com.smartscheduler.repository.ScheduleRepository;
+import com.smartscheduler.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,12 +13,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ScheduleService {
 
     @Autowired
     private ScheduleRepository scheduleRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private ConflictService conflictService;
@@ -31,8 +36,32 @@ public class ScheduleService {
     @Autowired
     private EmailService emailService;
 
-    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:nudaykumar2005@gmail.com}")
-    private String targetMailUsername = "nudaykumar2005@gmail.com";
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.username:n.udaykumar2005@gmail.com}")
+    private String targetMailUsername = "n.udaykumar2005@gmail.com";
+
+    private String resolveRecipientEmail(Schedule s) {
+        if (s.getProfessorEmail() != null && s.getProfessorEmail().contains("@")) {
+            return s.getProfessorEmail().trim();
+        }
+        if (s.getCreatedBy() != null && s.getCreatedBy().contains("@")) {
+            return s.getCreatedBy().trim();
+        }
+        if (userRepository != null) {
+            if (s.getCreatedBy() != null) {
+                Optional<com.smartscheduler.entity.User> uOpt = userRepository.findByUsername(s.getCreatedBy());
+                if (uOpt.isPresent() && uOpt.get().getUsername().contains("@")) {
+                    return uOpt.get().getUsername();
+                }
+            }
+            if (s.getProfessorName() != null) {
+                Optional<com.smartscheduler.entity.User> uOpt = userRepository.findByUsername(s.getProfessorName());
+                if (uOpt.isPresent() && uOpt.get().getUsername().contains("@")) {
+                    return uOpt.get().getUsername();
+                }
+            }
+        }
+        return targetMailUsername;
+    }
 
     public List<Schedule> getAllSchedules() {
         return scheduleRepository.findAll();
@@ -77,9 +106,11 @@ public class ScheduleService {
                     "Class '" + s.getSubject() + "' assigned to " + s.getProfessorName() + " in " + s.getRoomNumber(), "TIMETABLE_CHANGE");
         }
 
+        String recipientEmail = resolveRecipientEmail(s);
+
         // Email Notification Dispatch
         emailService.sendScheduleNotification(
-                targetMailUsername,
+                recipientEmail,
                 "📅 SmartScheduler Alert: New Class Assigned - " + s.getSubject(),
                 "Dear " + s.getProfessorName() + ",\n\nA new class session for '" + s.getSubject() +
                 "' has been assigned to you on " + s.getDay() + " at " + s.getTime() + " in " + s.getRoomNumber() + ".\nStatus: " + s.getStatus()
@@ -105,9 +136,11 @@ public class ScheduleService {
         notificationService.sendNotification(s.getProfessorName(), "Schedule Status Update",
                 "Your proposed class '" + s.getSubject() + "' status is now: " + status, "APPROVAL");
 
+        String recipientEmail = resolveRecipientEmail(s);
+
         // Email Status Update Alert
         emailService.sendScheduleNotification(
-                targetMailUsername,
+                recipientEmail,
                 "🔔 SmartScheduler Alert: Schedule Approval Status Updated - " + status,
                 "Dear " + s.getProfessorName() + ",\n\nYour proposed class '" + s.getSubject() +
                 "' for " + s.getDay() + " @ " + s.getTime() + " has been updated to: " + status +

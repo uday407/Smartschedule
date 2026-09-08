@@ -18,47 +18,80 @@ public class BackendApplication {
     @Bean
     public CommandLineRunner initDatabase(UserRepository userRepository, ScheduleRepository scheduleRepository) {
         return args -> {
-            if (userRepository.count() == 0) {
+            if (userRepository.count() <= 3) {
+                userRepository.deleteAll();
+
                 User admin = new User();
                 admin.setUsername("admin");
                 admin.setPassword("admin123");
-                admin.setFullName("Head of Department");
+                admin.setFullName("Head of Department (CS)");
                 admin.setRole("HOD");
+                admin.setDepartment("Computer Science");
+                admin.setEmailVerified(true);
                 userRepository.save(admin);
 
                 User prof1 = new User();
-                prof1.setUsername("uday");
+                prof1.setUsername("n.udaykumar2005@gmail.com");
                 prof1.setPassword("123");
                 prof1.setFullName("Dr. Uday Kumar");
                 prof1.setRole("PROFESSOR");
+                prof1.setDepartment("Computer Science");
+                prof1.setEmailVerified(true);
                 userRepository.save(prof1);
 
                 User prof2 = new User();
-                prof2.setUsername("sri");
+                prof2.setUsername("srikanth.prof@university.edu");
                 prof2.setPassword("123");
                 prof2.setFullName("Prof. Srikanth");
                 prof2.setRole("PROFESSOR");
+                prof2.setDepartment("Computer Science");
+                prof2.setEmailVerified(true);
                 userRepository.save(prof2);
 
-                System.out.println("✅ Auto Setup: Seeded admin (admin/admin123) and professors (uday/123, sri/123)!");
+                User prof3 = new User();
+                prof3.setUsername("anitha.sharma@university.edu");
+                prof3.setPassword("123");
+                prof3.setFullName("Dr. Anitha Sharma");
+                prof3.setRole("PROFESSOR");
+                prof3.setDepartment("Information Technology");
+                prof3.setEmailVerified(true);
+                userRepository.save(prof3);
+
+                User prof4 = new User();
+                prof4.setUsername("rajesh.verma@university.edu");
+                prof4.setPassword("123");
+                prof4.setFullName("Dr. Rajesh Verma");
+                prof4.setRole("PROFESSOR");
+                prof4.setDepartment("Artificial Intelligence");
+                prof4.setEmailVerified(true);
+                userRepository.save(prof4);
+
+                System.out.println("✅ Auto Setup: Seeded expanded professor & admin accounts!");
             }
 
-            if (scheduleRepository.count() == 0) {
-                createSchedule(scheduleRepository, "Dr. Uday Kumar", "Data Structures & Algorithms", "Monday", "09:00 AM", "Group A", "Room 101", "PUBLISHED");
-                createSchedule(scheduleRepository, "Dr. Uday Kumar", "Database Management Systems", "Tuesday", "10:00 AM", "Group B", "Lab A", "PUBLISHED");
-                createSchedule(scheduleRepository, "Prof. Srikanth", "Operating Systems", "Wednesday", "11:00 AM", "Group A", "Room 102", "PUBLISHED");
-                createSchedule(scheduleRepository, "Prof. Srikanth", "Computer Networks", "Thursday", "02:00 PM", "Group C", "Lab B", "PUBLISHED");
-                createSchedule(scheduleRepository, "Dr. Uday Kumar", "Artificial Intelligence", "Friday", "03:00 PM", "Group A", "Room 201", "PENDING_APPROVAL");
-                createSchedule(scheduleRepository, "Prof. Srikanth", "Cloud Computing", "Friday", "09:00 AM", "Group B", "Room 101", "PENDING_APPROVAL");
+            if (scheduleRepository.count() <= 6) {
+                scheduleRepository.deleteAll();
 
-                System.out.println("✅ Auto Setup: Seeded default initial timetable schedules!");
+                createSchedule(scheduleRepository, "Dr. Uday Kumar", "n.udaykumar2005@gmail.com", "Data Structures & Algorithms", "Monday", "09:00 AM", "Group A", "Room 101", "PUBLISHED");
+                createSchedule(scheduleRepository, "Dr. Uday Kumar", "n.udaykumar2005@gmail.com", "Database Management Systems", "Tuesday", "10:00 AM", "Group B", "Lab A", "PUBLISHED");
+                createSchedule(scheduleRepository, "Prof. Srikanth", "srikanth.prof@university.edu", "Operating Systems", "Wednesday", "11:00 AM", "Group A", "Room 102", "PUBLISHED");
+                createSchedule(scheduleRepository, "Prof. Srikanth", "srikanth.prof@university.edu", "Computer Networks & Security", "Thursday", "02:00 PM", "Group C", "Lab B", "PUBLISHED");
+                createSchedule(scheduleRepository, "Dr. Anitha Sharma", "anitha.sharma@university.edu", "Advanced Machine Learning", "Monday", "11:00 AM", "Group B", "Room 201", "PUBLISHED");
+                createSchedule(scheduleRepository, "Dr. Anitha Sharma", "anitha.sharma@university.edu", "Deep Learning & Neural Nets", "Wednesday", "09:00 AM", "Group C", "Lab A", "PUBLISHED");
+                createSchedule(scheduleRepository, "Dr. Rajesh Verma", "rajesh.verma@university.edu", "Web Architecture & Microservices", "Tuesday", "02:00 PM", "Group A", "Room 101", "PUBLISHED");
+                createSchedule(scheduleRepository, "Dr. Rajesh Verma", "rajesh.verma@university.edu", "Cloud Computing & DevOps", "Thursday", "10:00 AM", "Group B", "Room 102", "PUBLISHED");
+                createSchedule(scheduleRepository, "Dr. Uday Kumar", "n.udaykumar2005@gmail.com", "Artificial Intelligence Capstone", "Friday", "03:00 PM", "Group A", "Room 201", "PENDING_APPROVAL");
+                createSchedule(scheduleRepository, "Prof. Srikanth", "srikanth.prof@university.edu", "Distributed Systems Lab", "Friday", "09:00 AM", "Group B", "Lab B", "PENDING_APPROVAL");
+
+                System.out.println("✅ Auto Setup: Seeded rich mock timetable dataset (10 class schedules)!");
             }
         };
     }
 
-    private void createSchedule(ScheduleRepository repo, String prof, String subject, String day, String time, String group, String room, String status) {
+    private void createSchedule(ScheduleRepository repo, String prof, String email, String subject, String day, String time, String group, String room, String status) {
         Schedule s = new Schedule();
         s.setProfessorName(prof);
+        s.setProfessorEmail(email);
         s.setSubject(subject);
         s.setDay(day);
         s.setTime(time);
