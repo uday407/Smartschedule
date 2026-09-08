@@ -1,15 +1,17 @@
-# Build Stage
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+# Multi-stage lightweight Dockerfile for Render 512MB Memory Limit
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS builder
 WORKDIR /app
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
 COPY src ./src
-RUN mvn package -DskipTests
+ENV MAVEN_OPTS="-Xmx256m"
+RUN mvn clean package -DskipTests -B
 
 # Runtime Stage
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 VOLUME /tmp
 COPY --from=builder /app/target/*.jar app.jar
+ENV JAVA_OPTS="-Xmx256m -Xms128m"
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+
