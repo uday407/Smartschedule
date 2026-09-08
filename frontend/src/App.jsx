@@ -1,16 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-    (window.location.origin.includes('localhost')
-        ? 'http://localhost:8080'
-        : window.location.origin.replace('-frontend', '-backend'));
+const getApiBaseUrl = () => {
+    let url = import.meta.env.VITE_API_URL;
+    if (url) {
+        url = url.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = `https://${url}`;
+        }
+        return url.endsWith('/') ? url.slice(0, -1) : url;
+    }
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+        if (window.location.origin.includes('localhost')) {
+            return 'http://localhost:8080';
+        }
+        return window.location.origin.replace('-frontend', '-backend');
+    }
+    return 'http://localhost:8080';
+};
 
+const API_BASE_URL = getApiBaseUrl();
+
+const getInitialUser = () => {
+    try {
+        const item = localStorage.getItem('user');
+        if (!item || item === 'undefined' || item === 'null') return null;
+        return JSON.parse(item);
+    } catch (e) {
+        localStorage.removeItem('user');
+        return null;
+    }
+};
+
+const getInitialToken = () => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token || token === 'undefined' || token === 'null') return null;
+        return token;
+    } catch (e) {
+        localStorage.removeItem('token');
+        return null;
+    }
+};
 
 // Setup Axios Interceptor for JWT Authentication
 axios.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = getInitialToken();
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
@@ -20,8 +56,8 @@ axios.interceptors.request.use(
 );
 
 function App() {
-    const [token, setToken] = useState(localStorage.getItem('token') || null);
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || 'null'));
+    const [token, setToken] = useState(getInitialToken);
+    const [user, setUser] = useState(getInitialUser);
     const [view, setView] = useState('analytics'); // analytics, timetable, approval, ai, rooms, audit, password
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
