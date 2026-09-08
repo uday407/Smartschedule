@@ -231,20 +231,27 @@ function LoginView({ onLogin }) {
     const [msg, setMsg] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        // Auto background ping to wake up Render backend from cold start immediately on page load
+        axios.get(`${API_BASE_URL}/api/heartbeat`, { timeout: 30000 }).catch(() => { });
+    }, []);
+
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setMsg({ type: '', text: '' });
         setLoading(true);
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, form, { timeout: 20000 });
+            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, form, { timeout: 45000 });
             onLogin(res.data);
         } catch (err) {
             console.error("Login Error:", err);
-            const errorMsg = err.response?.data?.message
-                || (err.code === 'ECONNABORTED' ? '⏱️ Backend server cold start in progress. Please try logging in again in 5 seconds.' : null)
-                || err.message
-                || 'Login failed. Please verify credentials.';
-            setMsg({ type: 'error', text: errorMsg });
+            if (err.response?.data?.message) {
+                setMsg({ type: 'error', text: err.response.data.message });
+            } else if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+                setMsg({ type: 'error', text: '⏱️ Backend server cold start in progress. Please wait 5 seconds and click Sign In again!' });
+            } else {
+                setMsg({ type: 'error', text: 'Login failed. Please verify credentials.' });
+            }
         } finally {
             setLoading(false);
         }
