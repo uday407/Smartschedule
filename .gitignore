@@ -4,7 +4,8 @@ frontend/dist/
 frontend/.env
 
 # Java/Maven (Backend)
-backend/target/
+backend/target/*
+!backend/target/backend-0.0.1-SNAPSHOT.jar
 backend/logs/
 backend/.classpath
 backend/.project
