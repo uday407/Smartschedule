@@ -8,7 +8,11 @@ const getApiBaseUrl = () => {
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = `https://${url}`;
         }
-        return url.endsWith('/') ? url.slice(0, -1) : url;
+        url = url.endsWith('/') ? url.slice(0, -1) : url;
+        if (url.includes('smartscheduler-backend.onrender.com') || url.includes('app-backend-94b1.onrender.com')) {
+            return 'https://smartscheduler-backend-us41.onrender.com';
+        }
+        return url;
     }
     if (typeof window !== 'undefined' && window.location && window.location.origin) {
         if (window.location.origin.includes('localhost')) {
@@ -232,10 +236,15 @@ function LoginView({ onLogin }) {
         setMsg({ type: '', text: '' });
         setLoading(true);
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, form);
+            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, form, { timeout: 20000 });
             onLogin(res.data);
         } catch (err) {
-            setMsg({ type: 'error', text: err.response?.data?.message || 'Login failed. Verify credentials.' });
+            console.error("Login Error:", err);
+            const errorMsg = err.response?.data?.message
+                || (err.code === 'ECONNABORTED' ? '⏱️ Backend server cold start in progress. Please try logging in again in 5 seconds.' : null)
+                || err.message
+                || 'Login failed. Please verify credentials.';
+            setMsg({ type: 'error', text: errorMsg });
         } finally {
             setLoading(false);
         }
