@@ -21,22 +21,23 @@ public class EmailService {
 
     @Async
     public void sendScheduleNotification(String toEmail, String subject, String content) {
-        log.info("📧 [Email Dispatch] Recipient: '{}' | Subject: '{}'", toEmail, subject);
+        String recipient = (toEmail != null && toEmail.contains("@")) ? toEmail.trim() : fromEmail;
+        log.info("📧 [Email Dispatch] Target: '{}' (Original: '{}') | Subject: '{}'", recipient, toEmail, subject);
         
-        if (mailSender != null && fromEmail != null && !fromEmail.trim().isEmpty() && toEmail != null && toEmail.contains("@")) {
+        if (mailSender != null && fromEmail != null && !fromEmail.trim().isEmpty() && recipient != null && recipient.contains("@")) {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setFrom(fromEmail);
-                message.setTo(toEmail);
+                message.setTo(recipient);
                 message.setSubject(subject);
                 message.setText(content);
                 mailSender.send(message);
-                log.info("✅ [Email Sent Successfully] Sent email to '{}'", toEmail);
+                log.info("✅ [Email Sent Successfully] Sent email to '{}'", recipient);
             } catch (Exception e) {
-                log.warn("⚠️ [Email Dispatch Fallback] Logged email for {}: {}", toEmail, e.getMessage());
+                log.warn("⚠️ [Email Dispatch Warning] Failed to send email to {}: {}", recipient, e.getMessage(), e);
             }
         } else {
-            log.info("ℹ️ [In-App Notification Center] Recipient: {} | Subject: {}\nBody:\n{}", toEmail, subject, content);
+            log.info("ℹ️ [In-App Notification Center] Recipient: {} | Subject: {}\nBody:\n{}", recipient, subject, content);
         }
     }
 
