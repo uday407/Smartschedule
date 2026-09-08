@@ -10,7 +10,7 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 VOLUME /tmp
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 ENV JAVA_OPTS="-Xmx256m -Xms128m"
 EXPOSE 8080
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
