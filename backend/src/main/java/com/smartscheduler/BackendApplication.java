@@ -12,6 +12,16 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class BackendApplication {
     public static void main(String[] args) {
+        String dbUrl = System.getenv("SPRING_DATASOURCE_URL");
+        if (dbUrl != null && dbUrl.toLowerCase().contains("postgresql")) {
+            System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
+            System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
+            System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+        } else {
+            System.setProperty("spring.datasource.driver-class-name", "org.h2.Driver");
+            System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.H2Dialect");
+            System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.H2Dialect");
+        }
         SpringApplication.run(BackendApplication.class, args);
     }
 

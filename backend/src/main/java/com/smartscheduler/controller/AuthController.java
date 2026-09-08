@@ -50,14 +50,17 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
+        String cleanUsername = loginRequest.getUsername() != null ? loginRequest.getUsername().trim() : "";
+        String cleanPassword = loginRequest.getPassword() != null ? loginRequest.getPassword().trim() : "";
+
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
+                new UsernamePasswordAuthenticationToken(cleanUsername, cleanPassword)
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
 
-        User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
+        User user = userRepository.findByUsernameIgnoreCase(cleanUsername).orElseThrow();
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUsername());
 
         auditService.logAction(user.getUsername(), "USER_LOGIN", "User", user.getId(), "User logged in successfully");
