@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = "*")
 public class HealthController {
 
     @GetMapping("/")
