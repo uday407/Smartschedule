@@ -18,38 +18,32 @@ public class BackendApplication {
     @Bean
     public CommandLineRunner initDatabase(UserRepository userRepository, ScheduleRepository scheduleRepository) {
         return args -> {
-            if (!userRepository.existsByUsername("admin")) {
-                User admin = new User();
-                admin.setUsername("admin");
-                admin.setPassword("admin123");
-                admin.setFullName("Head of Department (CS)");
-                admin.setRole("HOD");
-                admin.setDepartment("Computer Science");
-                admin.setEmailVerified(true);
-                userRepository.save(admin);
-            }
+            User admin = userRepository.findByUsername("admin").orElse(new User());
+            admin.setUsername("admin");
+            admin.setPassword("admin123");
+            admin.setFullName("Head of Department (CS)");
+            admin.setRole("HOD");
+            admin.setDepartment("Computer Science");
+            admin.setEmailVerified(true);
+            userRepository.save(admin);
 
-            if (!userRepository.existsByUsername("uday")) {
-                User uday = new User();
-                uday.setUsername("uday");
-                uday.setPassword("123");
-                uday.setFullName("Dr. Uday Kumar");
-                uday.setRole("PROFESSOR");
-                uday.setDepartment("Computer Science");
-                uday.setEmailVerified(true);
-                userRepository.save(uday);
-            }
+            User uday = userRepository.findByUsername("uday").orElse(new User());
+            uday.setUsername("uday");
+            uday.setPassword("123");
+            uday.setFullName("Dr. Uday Kumar");
+            uday.setRole("PROFESSOR");
+            uday.setDepartment("Computer Science");
+            uday.setEmailVerified(true);
+            userRepository.save(uday);
 
-            if (!userRepository.existsByUsername("n.udaykumar2005@gmail.com")) {
-                User prof1 = new User();
-                prof1.setUsername("n.udaykumar2005@gmail.com");
-                prof1.setPassword("123");
-                prof1.setFullName("Dr. Uday Kumar");
-                prof1.setRole("PROFESSOR");
-                prof1.setDepartment("Computer Science");
-                prof1.setEmailVerified(true);
-                userRepository.save(prof1);
-            }
+            User prof1 = userRepository.findByUsername("n.udaykumar2005@gmail.com").orElse(new User());
+            prof1.setUsername("n.udaykumar2005@gmail.com");
+            prof1.setPassword("123");
+            prof1.setFullName("Dr. Uday Kumar");
+            prof1.setRole("PROFESSOR");
+            prof1.setDepartment("Computer Science");
+            prof1.setEmailVerified(true);
+            userRepository.save(prof1);
 
             if (!userRepository.existsByUsername("srikanth.prof@university.edu")) {
                 User prof2 = new User();
