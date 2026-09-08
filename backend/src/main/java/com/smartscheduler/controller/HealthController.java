@@ -1,5 +1,6 @@
 package com.smartscheduler.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,11 +23,26 @@ public class HealthController {
         return ResponseEntity.ok(response);
     }
 
+    @Autowired
+    private com.smartscheduler.service.EmailService emailService;
+
     @GetMapping("/api/health")
     public ResponseEntity<Map<String, Object>> apiHealth() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
         response.put("timestamp", System.currentTimeMillis());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/test-email")
+    public ResponseEntity<Map<String, Object>> testEmail() {
+        emailService.sendScheduleNotification("n.udaykumar2005@gmail.com", 
+            "⚡ SmartScheduler-Plus Live Test Notification", 
+            "Great news! Your SmartScheduler-Plus email notification engine is 100% active, verified, and sending real-time alerts to your Gmail inbox!");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "SUCCESS");
+        response.put("message", "Test email dispatched to n.udaykumar2005@gmail.com!");
         return ResponseEntity.ok(response);
     }
 }
