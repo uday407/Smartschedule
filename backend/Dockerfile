@@ -5,5 +5,5 @@ VOLUME /tmp
 COPY target/backend-0.0.1-SNAPSHOT.jar app.jar
 ENV JAVA_OPTS="-Xmx384m -Xms256m"
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xmx356m", "-Xms128m", "-jar", "app.jar"]
 
