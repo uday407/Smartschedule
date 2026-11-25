@@ -556,7 +556,7 @@ function TimetableManagerView({ user }) {
     const [schedules, setSchedules] = useState([]);
     const [search, setSearch] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('ALL');
-    const [showOnlyMine, setShowOnlyMine] = useState(user.role !== 'HOD');
+    const [showOnlyMine, setShowOnlyMine] = useState(false);
     const [conflictMsg, setConflictMsg] = useState('');
     const [form, setForm] = useState({
         professorName: user.role !== 'HOD' ? (user.fullName || 'Dr. Uday Kumar') : 'Dr. Uday Kumar',
