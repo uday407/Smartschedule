@@ -12,6 +12,7 @@ backend/.project
 backend/.settings/
 backend/.idea/
 backend/*.iml
+# Keep backend/.mvn/wrapper/ — needed for Render build
 
 # Maven wrapper (not needed in repo)
 maven/
