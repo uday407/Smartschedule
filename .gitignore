@@ -12,10 +12,11 @@ backend/.project
 backend/.settings/
 backend/.idea/
 backend/*.iml
-# Keep backend/.mvn/wrapper/ — needed for Render build
+# Keep backend/.mvn/wrapper/ - needed for Render build
 
-# Maven wrapper (not needed in repo)
+# Local Maven installation (never commit)
 maven/
+apache-maven*/
 
 # Test & debug scripts
 test_api.ps1
