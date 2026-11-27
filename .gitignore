@@ -4,15 +4,22 @@ frontend/dist/
 frontend/.env
 
 # Java/Maven (Backend)
-backend/target/*
-!backend/target/backend-0.0.1-SNAPSHOT.jar
+backend/target/
 backend/logs/
+backend/bin/
 backend/.classpath
 backend/.project
 backend/.settings/
 backend/.idea/
 backend/*.iml
+
+# Maven wrapper (not needed in repo)
+maven/
+
+# Test & debug scripts
 test_api.ps1
+test_email.ps1
+FEP_Bug_Screenshot.png
 
 # OS and IDE files
 .DS_Store

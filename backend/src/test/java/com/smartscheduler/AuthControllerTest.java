@@ -74,7 +74,7 @@ public class AuthControllerTest {
         Authentication auth = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
         when(tokenProvider.generateToken(auth)).thenReturn("mocked-jwt-token");
-        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByUsernameIgnoreCase("admin")).thenReturn(Optional.of(sampleUser));
         when(refreshTokenService.createRefreshToken("admin")).thenReturn(sampleRefreshToken);
 
         ResponseEntity<AuthResponse> response = authController.login(request);
@@ -96,7 +96,7 @@ public class AuthControllerTest {
 
         Authentication auth = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
-        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+        // findByUsernameIgnoreCase not mocked → Mockito returns Optional.empty() → orElseThrow() throws
 
         assertThrows(NoSuchElementException.class, () -> authController.login(request));
     }
